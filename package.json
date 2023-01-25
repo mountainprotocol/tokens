@@ -1,14 +1,24 @@
 {
   "name": "token-poc",
   "version": "1.0.0",
-  "description": "Mountain Protocol Token PoC",
+  "description": "Mountain Protocol Token Project",
   "main": "index.js",
-  "repository": "git@github.com:mountainprotocol/token-poc.git",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mountainprotocol/token-poc.git"
+  },
   "author": "Mati <mattiascaricato@gmail.com>",
   "license": "UNLICENSED",
-  "private": true,
+  "bugs": {
+    "url": "https://github.com/mountainprotocol/token-poc/issues"
+  },
+  "homepage": "https://github.com/mountainprotocol/token-poc#readme",
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.1",
     "hardhat": "^2.12.6"
   }
 }
