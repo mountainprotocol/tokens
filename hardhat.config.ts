@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomiclabs/hardhat-solhint";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -17,6 +18,8 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
   },
+  defaultNetwork: 'hardhat',
+  // defaultNetwork: 'goerli',
   networks: {
     goerli: {
       url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_GOERLI_API_KEY}`,
