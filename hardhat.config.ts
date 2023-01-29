@@ -2,7 +2,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import dotenv from "dotenv";
 
-dotenv.config({path:__dirname+'/.env'})
+dotenv.config();
 
 const { ETHERSCAN_API_KEY, ALCHEMY_GOERLI_API_KEY, GOERLI_PRIVATE_KEY } = process.env;
 // const { ETHERSCAN_API_KEY, ALCHEMY_GOERLI_API_KEY, GOERLI_PRIVATE_KEY, ALCHEMY_MAINNET_API_KEY, MAINNET_PRIVATE_KEY } = process.env;
