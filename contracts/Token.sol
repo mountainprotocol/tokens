@@ -10,10 +10,10 @@ contract Token {
     string public _symbol;
 
     // The fixed amount of tokens, stored in an unsigned integer type variable.
-    uint256 public totalSupply = 1000000;
+    uint256 public _totalSupply;
 
     // An address type variable is used to store ethereum accounts.
-    address public owner;
+    address public _owner;
 
     // A mapping is a key/value map. Here we store each account's balance.
     mapping(address => uint256) balances;
@@ -25,13 +25,15 @@ contract Token {
     /**
      * Contract initialization.
      */
-    constructor(string memory name_, string memory symbol_) {
+    constructor(string memory name_, string memory symbol_, uint256 totalSupply_) {
         _name = name_;
         _symbol = symbol_;
+        _totalSupply = totalSupply_;
+
         // The totalSupply is assigned to the transaction sender, which is the
         // account that is deploying the contract.
-        balances[msg.sender] = totalSupply;
-        owner = msg.sender;
+        balances[msg.sender] = totalSupply_;
+        _owner = msg.sender;
     }
 
     function name() public view returns (string memory) {
@@ -40,6 +42,14 @@ contract Token {
 
     function symbol() public view returns (string memory) {
         return _symbol;
+    }
+
+    function owner() public view returns (address) {
+        return _owner;
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return _totalSupply;
     }
 
     /**
