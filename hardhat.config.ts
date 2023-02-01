@@ -29,6 +29,9 @@ const config: HardhatUserConfig = {
     //   url: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_MAINNET_API_KEY}`,
     //   accounts: [MAINNET_PRIVATE_KEY],
     // },
+    hardhat: {
+      chainId: 1337 // We set 1337 to make interacting with MetaMask simpler
+    }
   },
 };
 
