@@ -1,7 +1,6 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("Token", () => {
   const name = "Mountain Protocol USD Token";
@@ -43,13 +42,20 @@ describe("Token", () => {
     it("should set the correct total supply", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
-      expect(await contract.totalSupply()).to.equal(totalSupply);
+      console.log(await contract.totalSupply());
+      console.log(ethers.utils.parseUnits(totalSupply.toString()));
+
+      expect(
+        await contract.totalSupply()
+      ).to.equal(ethers.utils.parseUnits(totalSupply.toString()));
     });
 
     it("should assign the total supply of tokens to the owner", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
-      expect(totalSupply).to.equal(await contract.balanceOf(owner.address));
+      expect(
+        ethers.utils.parseUnits(totalSupply.toString())
+      ).to.equal(await contract.balanceOf(owner.address));
     });
 
     it("should grant admin role to owner", async () => {
@@ -68,13 +74,13 @@ describe("Token", () => {
 
 
       // Transfer 10 tokens from owner to acc1
-      await expect(
+      expect(
         contract.transfer(acc1.address, 10)
       ).to.changeTokenBalances(contract, [owner, acc1], [-10, 10]);
 
       // Transfer 5 tokens from acc1 to acc2
       // We use .connect(signer) to send a transaction from another account
-      await expect(
+      expect(
         contract.connect(acc1).transfer(acc2.address, 5)
       ).to.changeTokenBalances(contract, [acc1, acc2], [-5, 5]);
     });
@@ -85,7 +91,7 @@ describe("Token", () => {
 
       // Transfer 1 token from acc1 to acc2
       // We use .connect(signer) to send a transaction from another account
-      await expect(
+      expect(
         contract.connect(acc1).transfer(acc2.address, 1)
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
@@ -98,7 +104,7 @@ describe("Token", () => {
     it("should emit Transfer events", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
-      await expect(contract.transfer(acc1.address, 1))
+      expect(contract.transfer(acc1.address, 1))
         .to.emit(contract, "Transfer")
         .withArgs(owner.address, acc1.address, 1);
     });
@@ -107,7 +113,7 @@ describe("Token", () => {
     //   const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
 
     //   // Acc1 balance is zero
-    //   await expect(
+    //   expect(
     //     contract.connect(acc1).transfer(acc2.address, 1)
     //   ).not.to.emit(contract, "Transfer");
     // });
@@ -118,7 +124,7 @@ describe("Token", () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
       const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
-      await expect(
+      expect(
         contract.connect(acc1).mint(acc1.address, 1000)
       ).to.be.revertedWith(
         `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${MINTER_ROLE}`
@@ -130,7 +136,7 @@ describe("Token", () => {
       const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
       contract.grantRole(MINTER_ROLE, acc1.address);
 
-      await expect(
+      expect(
         contract.connect(acc1).mint(acc1.address, 100)
       ).to.not.be.revertedWith(
         `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${MINTER_ROLE}`
@@ -141,7 +147,7 @@ describe("Token", () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
       const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
 
-      await expect(
+      expect(
         contract.connect(acc1).burn(acc1.address, 1000)
       ).to.be.revertedWith(
         `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${BURNER_ROLE}`
@@ -153,11 +159,61 @@ describe("Token", () => {
       const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
       contract.grantRole(BURNER_ROLE, owner.address);
 
-      await expect(
+      expect(
         contract.burn(owner.address, 1)
       ).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BURNER_ROLE}`
       );
+    });
+
+    it("should not blacklist without blacklist role", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
+
+      expect(
+        contract.blacklist(owner.address)
+      ).to.be.revertedWith(
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
+      );
+    });
+
+    it("should blacklist with blacklist role", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
+      contract.grantRole(BLACKLIST_ROLE, owner.address);
+
+      expect(
+        contract.blacklist(owner.address)
+      ).to.not.be.revertedWith(
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
+      );
+    });
+  });
+
+  describe("Blacklist", () => {
+    it("should add address to the blacklist", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
+      contract.grantRole(BLACKLIST_ROLE, owner.address);
+
+      await contract.blacklist(acc1.address);
+
+      expect(
+        await contract.isBlacklisted(acc1.address)
+      ).to.equal(true);
+    });
+
+    it("should remove an address from the blacklist", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
+      contract.grantRole(BLACKLIST_ROLE, owner.address);
+
+      await contract.blacklist(acc1.address);
+      await contract.unblacklist(acc1.address);
+
+      expect(
+        await contract.isBlacklisted(acc1.address)
+      ).to.equal(false);
     });
   });
 });

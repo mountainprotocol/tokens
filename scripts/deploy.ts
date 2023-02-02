@@ -17,7 +17,7 @@ const main = async () => {
   const token = await Token.deploy(
     "Mountain Protocol Token POC",
     "USD-POC",
-    1_000_000,
+    100_000_000, // 100M
   );
   await token.deployed();
 
