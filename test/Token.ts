@@ -34,11 +34,11 @@ describe("Token", () => {
       expect(await contract.symbol()).to.equal(symbol);
     });
 
-    it("should set the correct owner", async () => {
-      const { contract, owner } = await loadFixture(deployTokenFixture);
+    // it("should set the correct owner", async () => {
+    //   const { contract, owner } = await loadFixture(deployTokenFixture);
 
-      expect(await contract.owner()).to.equal(owner.address);
-    });
+    //   expect(await contract.owner().to.equal(owner.address);
+    // });
 
     it("should set the correct total supply", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
@@ -50,6 +50,15 @@ describe("Token", () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       expect(totalSupply).to.equal(await contract.balanceOf(owner.address));
+    });
+
+    it("should grant admin role to owner", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+
+      expect(
+        await contract.hasRole(
+          await contract.DEFAULT_ADMIN_ROLE(), owner.address)
+      ).to.equal(true);
     });
   });
 
@@ -78,7 +87,7 @@ describe("Token", () => {
       // We use .connect(signer) to send a transaction from another account
       await expect(
         contract.connect(acc1).transfer(acc2.address, 1)
-      ).to.be.revertedWith("Not enough tokens");
+      ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
       // Acc2 balance shouldn't have changed.
       expect(await contract.balanceOf(acc2.address)).to.equal(
@@ -92,6 +101,63 @@ describe("Token", () => {
       await expect(contract.transfer(acc1.address, 1))
         .to.emit(contract, "Transfer")
         .withArgs(owner.address, acc1.address, 1);
+    });
+
+    // it("shouldn't emit Transfer events if tx has failed", async () => {
+    //   const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
+
+    //   // Acc1 balance is zero
+    //   await expect(
+    //     contract.connect(acc1).transfer(acc2.address, 1)
+    //   ).not.to.emit(contract, "Transfer");
+    // });
+  });
+
+  describe("Access Control", () => {
+    it("should not mint without minter role", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
+
+      await expect(
+        contract.connect(acc1).mint(acc1.address, 1000)
+      ).to.be.revertedWith(
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${MINTER_ROLE}`
+      );
+    });
+
+    it("should mint with minter role", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
+      contract.grantRole(MINTER_ROLE, acc1.address);
+
+      await expect(
+        contract.connect(acc1).mint(acc1.address, 100)
+      ).to.not.be.revertedWith(
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${MINTER_ROLE}`
+      );
+    });
+
+    it("should not burn without burner role", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
+
+      await expect(
+        contract.connect(acc1).burn(acc1.address, 1000)
+      ).to.be.revertedWith(
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${BURNER_ROLE}`
+      );
+    });
+
+    it("should burn with burner role", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
+      contract.grantRole(BURNER_ROLE, owner.address);
+
+      await expect(
+        contract.burn(owner.address, 1)
+      ).to.not.be.revertedWith(
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BURNER_ROLE}`
+      );
     });
   });
 });
