@@ -2,13 +2,16 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-// Uncomment this line to use console.log
-// import "hardhat/console.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
-// Author: @pridegsu
-contract Token is ERC20, AccessControl {
+// TODO: Permit
+// TODO: Snapshot
+
+// Author: @mattiascaricato
+contract Token is ERC20, Ownable, AccessControl, Pausable {
     mapping(address => bool) internal _blacklist;
 
     event AddressBlacklisted(address indexed addr);
@@ -16,12 +19,21 @@ contract Token is ERC20, AccessControl {
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
-    // bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant BLACKLIST_ROLE = keccak256("BLACKLIST_ROLE");
     
     constructor(string memory name_, string memory symbol_, uint256 initialSupply_) ERC20(name_, symbol_) {
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _mint(msg.sender, initialSupply_ * (10 ** uint256(decimals())));
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _mint(_msgSender(), initialSupply_ * (10 ** uint256(decimals())));
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        require(!_blacklist[from], "Address is blacklisted");
+        require(!_blacklist[to], "Address is blacklisted");
+        super._beforeTokenTransfer(from, to, amount);
     }
 
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
@@ -46,6 +58,14 @@ contract Token is ERC20, AccessControl {
 
     function isBlacklisted(address _addr) public view returns (bool) {
         return _blacklist[_addr];
+    }
+
+    function pause() public onlyOwner {
+        super._pause();
+    }
+
+    function unpause() public onlyOwner {
+        super._unpause();
     }
 
     // Wipes the balance of a frozen address, burning the tokens and setting the approval to zero
