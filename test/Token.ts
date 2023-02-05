@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 describe("Token", () => {
   const name = "Mountain Protocol USD Token";
   const symbol = "USDM";
-  const totalSupply = ethers.utils.parseUnits("1337");
+  const totalShares = ethers.utils.parseUnits("1337");
 
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
@@ -15,7 +15,7 @@ describe("Token", () => {
     const [owner, acc1, acc2] = await ethers.getSigners();
 
     const Token = await ethers.getContractFactory("Token");
-    const contract = await Token.deploy(name, symbol, totalSupply);
+    const contract = await Token.deploy(name, symbol, totalShares);
 
     return { contract, owner, acc1, acc2 };
   }
@@ -39,20 +39,23 @@ describe("Token", () => {
       expect(await contract.owner()).to.equal(owner.address);
     });
 
+    it("should set the correct total shares", async () => {
+      const { contract } = await loadFixture(deployTokenFixture);
+
+      expect(await contract.totalShares()).to.equal(totalShares);
+    });
+
     it("should set the correct total supply", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
-      expect(
-        await contract.totalSupply()
-      ).to.equal(totalSupply);
+      // Reward multiplier is not set so totalShares === totalSupply
+      expect(await contract.totalSupply()).to.equal(totalShares);
     });
 
-    it("should assign the total supply of tokens to the owner", async () => {
+    it("should assign the total shares to the owner", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
-      expect(
-        await contract.balanceOf(owner.address)
-      ).to.equal(totalSupply);
+      expect(await contract.sharesOf(owner.address)).to.equal(totalShares);
     });
 
     it("should grant admin role to owner", async () => {
@@ -100,9 +103,12 @@ describe("Token", () => {
     it("should emit Transfer events", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
-      await expect(contract.transfer(acc1.address, 1))
+      const to = acc1.address;
+      const amount = ethers.utils.parseUnits("1");
+
+      await expect(contract.transfer(to, amount))
         .to.emit(contract, "Transfer")
-        .withArgs(owner.address, acc1.address, 1);
+        .withArgs(owner.address, to, amount);
     });
   });
 
@@ -342,12 +348,27 @@ describe("Token", () => {
 
   describe("shares", () => {
     it("should initialize with zero", async () => {
-      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
-      expect (await contract.balanceOf(owner.address)).to.equal(0);
       expect (await contract.balanceOf(acc1.address)).to.equal(0);
-      expect (await contract.sharesOf(owner.address)).to.equal(0);
       expect (await contract.sharesOf(acc1.address)).to.equal(0);
+    });
+
+    it("should mint new shares", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
+
+      const currentShares = await contract.totalShares();
+      const newShares = ethers.utils.parseUnits("1337");
+
+      const expected = currentShares.add(newShares);
+
+      await contract.grantRole(MINTER_ROLE, owner.address);
+      await contract.mint(owner.address, newShares);
+
+      expect (
+        await contract.totalShares()
+      ).to.equal(expected);
     });
 
     it("should not change amount of shares when updating reward multiplier", async () => {
@@ -355,15 +376,16 @@ describe("Token", () => {
       const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
       const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
 
-      const sharesToMint = ethers.utils.parseUnits("1337");
+      const sharesToMint = ethers.utils.parseUnits("1");
 
       await contract.grantRole(MINTER_ROLE, owner.address);
       await contract.grantRole(ORACLE_ROLE, owner.address);
-      await contract.mint(owner.address, sharesToMint);
+      await contract.mint(acc1.address, sharesToMint);
+
       await contract.setRewardMultipler(ethers.utils.parseUnits("0.01"));
 
 
-      expect (await contract.sharesOf(owner.address)).to.equal(sharesToMint);
+      expect (await contract.sharesOf(acc1.address)).to.equal(sharesToMint);
     });
   });
 });

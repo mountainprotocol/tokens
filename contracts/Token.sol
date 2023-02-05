@@ -36,9 +36,9 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     event AddressUnBlacklisted(address indexed addr);
     event RewardMultiplierUpdated(uint256 indexed addr);
 
-    constructor(string memory name_, string memory symbol_, uint256 initialSupply_) ERC20(name_, symbol_) {
+    constructor(string memory name_, string memory symbol_, uint256 initialShares) ERC20(name_, symbol_) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _mint(_msgSender(), initialSupply_ * (10 ** uint256(decimals())));
+        _mint(_msgSender(), initialShares);
 
         // Chainlink contract addresses Goerli
         // setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
@@ -49,13 +49,13 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         address from,
         address to,
         uint256 amount
-    ) internal virtual override {
+    ) internal override {
         require(!_blacklist[from], "Address is blacklisted");
         require(!_blacklist[to], "Address is blacklisted");
         super._beforeTokenTransfer(from, to, amount);
     }
 
-    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+    function _mint(address to, uint256 amount) internal override {
         require(to != address(0), "ERC20: mint to the zero address");
 
         _beforeTokenTransfer(address(0), to, amount);
@@ -69,6 +69,10 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         emit Transfer(address(0), to, amount);
 
         _afterTokenTransfer(address(0), to, amount);
+    }
+
+    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+        _mint(to, amount);
     }
 
     function burn(address from, uint256 amount) public onlyRole(BURNER_ROLE) {
@@ -91,11 +95,11 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         return _blacklist[_addr];
     }
 
-    function pause() public virtual onlyOwner {
+    function pause() public onlyOwner {
         super._pause();
     }
 
-    function unpause() public virtual onlyOwner {
+    function unpause() public onlyOwner {
         super._unpause();
     }
 
@@ -136,26 +140,27 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         emit RewardMultiplierUpdated(_rewardMultipler);
     }
 
-    // TODO: Hardhodear rewards multiplier y agregar lógica de units (ex shares), balanceOf, totalUnits, totalSupply, transfer, mint, burn
+    // TODO: Hardhodear rewards multiplier y agregar lógica de units
+    // (ex shares), balanceOf, totalUnits, totalSupply, transfer, mint, burn
     // shares: returns the number of shares for an account  balanceOf:balanceofaspecificwallet
     // balanceOf(account) = shares[account] * rewardsMultiplier
     // totalShares: returns total number of shares underlying USDM  totalSupply: returns total supply of USDM
     // totalSupply() = totalShares * rewardsMultiplier
 
-    function totalSupply() public view virtual override returns (uint256) {
-        return _totalShares * _rewardMultipler;
+    function totalSupply() public view override returns (uint256) {
+        return _totalShares * _rewardMultipler / 1e18;
     }
 
-    function totalShares() public view virtual returns (uint256) {
+    function totalShares() public view returns (uint256) {
         return _totalShares;
     }
 
-    function sharesOf(address account) public view virtual returns (uint256) {
+    function sharesOf(address account) public view returns (uint256) {
         return _shares[account];
     }
 
-    function balanceOf(address account) public view virtual override returns (uint256) {
-        return sharesOf(account) * _rewardMultipler;
+    function balanceOf(address account) public view override returns (uint256) {
+        return sharesOf(account) * _rewardMultipler / 1e18;
     }
 
 }
