@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 // import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 
-import "hardhat/console.sol";
-
 // TODO: Permit
 // TODO: Upgrade (Proxy)
 // TODO: Snapshot?
@@ -45,14 +43,20 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         // setChainlinkOracle(0xCC79157eb46F5624204f47AB42b3906cAA40eaB7);
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
-        require(!_blacklist[from], "Address is blacklisted");
-        require(!_blacklist[to], "Address is blacklisted");
-        super._beforeTokenTransfer(from, to, amount);
+    function totalSupply() public view override returns (uint256) {
+        return _totalShares * _rewardMultipler / 1e18;
+    }
+
+    function totalShares() public view returns (uint256) {
+        return _totalShares;
+    }
+
+    function sharesOf(address account) public view returns (uint256) {
+        return _shares[account];
+    }
+
+    function balanceOf(address account) public view override returns (uint256) {
+        return sharesOf(account) * _rewardMultipler / 1e18;
     }
 
     function _mint(address to, uint256 amount) internal override {
@@ -75,6 +79,50 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         _mint(to, amount);
     }
 
+    function _transfer(address from, address to, uint256 sharesAmount) internal override {
+        require(from != address(0), "ERC20: transfer from the zero address");
+        require(to != address(0), "ERC20: transfer to the zero address");
+
+        _beforeTokenTransfer(from, to, sharesAmount);
+
+        uint256 fromShares = _shares[from];
+        require(fromShares >= sharesAmount, "ERC20: transfer amount exceeds balance");
+        unchecked {
+            _shares[from] = fromShares - sharesAmount;
+            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
+            // decrementing then incrementing.
+            _shares[to] += sharesAmount;
+        }
+
+        emit Transfer(from, to, sharesAmount);
+
+        _afterTokenTransfer(from, to, sharesAmount);
+    }
+
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        address owner = _msgSender();
+        _transfer(owner, to, amount);
+        return true;
+    }
+
+    function _burn(address account, uint256 amount) internal override {
+        require(account != address(0), "ERC20: burn from the zero address");
+
+        _beforeTokenTransfer(account, address(0), amount);
+
+        uint256 accountShares = sharesOf(account);
+        require(accountShares >= amount, "ERC20: burn amount exceeds balance");
+        unchecked {
+            _shares[account] = accountShares - amount;
+            // Overflow not possible: amount <= accountBalance <= totalSupply.
+            _totalShares -= amount;
+        }
+
+        emit Transfer(account, address(0), amount);
+
+        _afterTokenTransfer(account, address(0), amount);
+    }
+
     function burn(address from, uint256 amount) public onlyRole(BURNER_ROLE) {
         _burn(from, amount);
     }
@@ -93,6 +141,16 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
 
     function isBlacklisted(address _addr) public view returns (bool) {
         return _blacklist[_addr];
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        require(!isBlacklisted(from), "Address is blacklisted");
+        require(!isBlacklisted(to), "Address is blacklisted");
+        super._beforeTokenTransfer(from, to, amount);
     }
 
     function pause() public onlyOwner {
@@ -139,30 +197,6 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
 
         emit RewardMultiplierUpdated(_rewardMultipler);
     }
-
-    // TODO: Hardhodear rewards multiplier y agregar lógica de units
-    // (ex shares), balanceOf, totalUnits, totalSupply, transfer, mint, burn
-    // shares: returns the number of shares for an account  balanceOf:balanceofaspecificwallet
-    // balanceOf(account) = shares[account] * rewardsMultiplier
-    // totalShares: returns total number of shares underlying USDM  totalSupply: returns total supply of USDM
-    // totalSupply() = totalShares * rewardsMultiplier
-
-    function totalSupply() public view override returns (uint256) {
-        return _totalShares * _rewardMultipler / 1e18;
-    }
-
-    function totalShares() public view returns (uint256) {
-        return _totalShares;
-    }
-
-    function sharesOf(address account) public view returns (uint256) {
-        return _shares[account];
-    }
-
-    function balanceOf(address account) public view override returns (uint256) {
-        return sharesOf(account) * _rewardMultipler / 1e18;
-    }
-
 }
 
 

@@ -39,7 +39,7 @@ describe("Token", () => {
       expect(await contract.owner()).to.equal(owner.address);
     });
 
-    it("should set the correct total shares", async () => {
+    it("should set the correct initial total shares", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       expect(await contract.totalShares()).to.equal(totalShares);
@@ -52,7 +52,7 @@ describe("Token", () => {
       expect(await contract.totalSupply()).to.equal(totalShares);
     });
 
-    it("should assign the total shares to the owner", async () => {
+    it("should assign the initial total shares to the owner", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       expect(await contract.sharesOf(owner.address)).to.equal(totalShares);
@@ -208,6 +208,50 @@ describe("Token", () => {
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
       );
     });
+
+    it("should pause when admin", async () => {
+      const { contract } = await loadFixture(deployTokenFixture);
+
+      await expect(
+        await contract.pause()
+      ).to.not.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+    });
+
+    it("should not pause without admin", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+
+      await expect(
+        contract.connect(acc1).pause()
+      ).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+    });
+
+    it("should unpause when admin", async () => {
+      const { contract } = await loadFixture(deployTokenFixture);
+
+      await contract.pause();
+
+      await expect(
+        await contract.unpause()
+      ).to.not.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+    });
+
+    it("should not unpause without admin", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+
+      await contract.pause();
+
+      await expect(
+        contract.connect(acc1).unpause()
+      ).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+    });
   });
 
   describe("Blacklist", () => {
@@ -261,35 +305,11 @@ describe("Token", () => {
     });
   });
 
-  describe("Pausable", () => {
-    it("should pause when admin", async () => {
-      const { contract, owner } = await loadFixture(deployTokenFixture);
-
-      await expect(
-        await contract.pause()
-      ).to.not.be.revertedWith(
-        "Ownable: caller is not the owner"
-      );
-    });
-
-    it("should not pause without admin", async () => {
-      const { contract, acc1 } = await loadFixture(deployTokenFixture);
-
-      await expect(
-        contract.connect(acc1).pause()
-      ).to.be.revertedWith(
-        "Ownable: caller is not the owner"
-      );
-    });
-  });
-
   // describe("Oracle", () => {
   //   it("should update the reward multipler", async () => {
   //     const { contract, owner } = await loadFixture(deployTokenFixture);
 
   //     const result = await contract.setRewardMultipler();
-
-  //     console.log(result);
   //   });
   // });
 
@@ -344,6 +364,27 @@ describe("Token", () => {
         contract.setRewardMultipler(interest)
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
+
+    it("Should reflect the dynamic supply", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
+      const interest = ethers.utils.parseUnits("0.01");
+
+      await contract.grantRole(ORACLE_ROLE, owner.address);
+
+      expect(
+        await contract.totalSupply()
+      ).to.equal(totalShares);
+
+      await contract.setRewardMultipler(interest);
+
+      const rewardMultipler = await contract.rewardMultipler();
+      const expected = totalShares.mul(rewardMultipler).div(ethers.utils.parseUnits("1"));
+
+      expect(
+        await contract.totalSupply()
+      ).to.equal(expected);
+    })
   });
 
   describe("shares", () => {
@@ -386,6 +427,41 @@ describe("Token", () => {
 
 
       expect (await contract.sharesOf(acc1.address)).to.equal(sharesToMint);
+    });
+  });
+
+  describe("burn", () => {
+    it("should decrement account shares when burning", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
+
+      await contract.grantRole(BURNER_ROLE, owner.address);
+
+      const accountShares = await contract.sharesOf(owner.address);
+      const amount = ethers.utils.parseUnits("1");
+
+      await contract.burn(owner.address, amount)
+
+      expect(
+        await contract.sharesOf(owner.address)
+      ).to.equal(accountShares.sub(amount));
+    });
+
+    it("should decrement total shares quantity when burning", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
+
+      await contract.grantRole(BURNER_ROLE, owner.address);
+
+      const totalShares = await contract.totalShares();
+      const accountShares = await contract.sharesOf(owner.address);
+      const amount = ethers.utils.parseUnits("1");
+
+      await contract.burn(owner.address, amount)
+
+      expect(
+        await contract.totalShares()
+      ).to.equal(totalShares.sub(amount));
     });
   });
 });
