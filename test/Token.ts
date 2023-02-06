@@ -365,7 +365,7 @@ describe("Token", () => {
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
 
-    it("Should reflect the dynamic supply", async () => {
+    it("should reflect the dynamic supply", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
       const interest = ethers.utils.parseUnits("0.01");

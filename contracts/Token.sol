@@ -8,16 +8,19 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 // import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+// import "hardhat/console.sol";
 
 // TODO: Permit
 // TODO: Upgrade (Proxy)
-// TODO: Snapshot?
+// TODO: Snapshot
+// TODO: Live Oracle
 
 using SafeMath for uint256;
 
 // Author: @mattiascaricato
 contract Token is ERC20, Ownable, AccessControl, Pausable {
     // using Chainlink for Chainlink.Request;
+    using SafeERC20 for IERC20;
 
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
@@ -198,66 +201,3 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         emit RewardMultiplierUpdated(_rewardMultipler);
     }
 }
-
-
-// Daily 3% APR => 0.00008219178082
-
-
-// BUY - 100 USDC - APY 100%
-
-// Day 0
-// Daily Reward => 0.002739726027
-// Reward Multiplier 1
-// Shares 100
-// balanceOf 100
-
-// Day 1
-// Shares 100
-// Reward Multiplier 1.002739726027
-// balanceOf 100.2739726027
-
-// Day 100
-// Shares 100
-// Reward Multiplier 1.2739726027
-// balanceOf 127.39726027
-
-// Day 200
-// Shares 100
-// Reward Multiplier 1.5479452054
-// balanceOf 154.79452054
-
-// Day 365
-// Shares 100
-// Reward Multiplier 1.9999999
-// balanceOf 199.99999
-
-
-// Redim at day 100
-// Shares 100
-// Reward Multiplier 1.2739726027
-// balanceOf 127.39726027
-
-
-// 1 - 100000000000000000
-// 1000 - 1000000000000000000000
-// *
-// 20% APR
-// Daily => 0.000547945205479452 - 547945205479452
-// Daily => 1.000547945205479452 - 1000547945205479452
-// 1000547945205500000
-
-// 5.479452055e35
-
-
-// 1000000000000000000000 * 1000547945205479452
-// 5.4794521e+32
-// 5.479452055×10³⁵
-// (1000000000000000000000 * 1000547945205479452)/10^18
-// (1000000000000000000000 * 1000547945205479452)/1000000000000000000
-// (1000000000000000000000n * 1000547945205479452n)/1000000000000000000n
-// 1000547945205479452000n
-
-
-// 1000 * 1.0005479452054794521
-// Result: 1,000.5479452054794521 - 1000.547945205479452
-// 1000547945205479452000
