@@ -24,7 +24,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
 
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
-    uint256 private _rewardMultipler = 1e18;
+    uint256 private _rewardMultiplier = 1e18;
     uint256 private _totalShares;
     uint256 private _totalSupply;
 
@@ -47,7 +47,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     }
 
     function totalSupply() public view override returns (uint256) {
-        return _totalShares * _rewardMultipler / 1e18;
+        return _totalShares * _rewardMultiplier / 1e18;
     }
 
     function totalShares() public view returns (uint256) {
@@ -59,7 +59,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     }
 
     function balanceOf(address account) public view override returns (uint256) {
-        return sharesOf(account) * _rewardMultipler / 1e18;
+        return sharesOf(account) * _rewardMultiplier / 1e18;
     }
 
     function _mint(address to, uint256 amount) internal override {
@@ -164,7 +164,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         super._unpause();
     }
 
-    // function setRewardMultipler() public returns (bytes32) {
+    // function setRewardMultiplier() public returns (bytes32) {
     //     bytes32 jobId = "ca98366cc7314957b8c012c72f05aeeb";
     //     uint256 fee = (1 * LINK_DIVISIBILITY) / 10;
 
@@ -185,19 +185,19 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     //         "Only the oracle is allowed to call this function"
     //     );
 
-    //     _rewardMultipler = _result;
+    //     _rewardMultiplier = _result;
     // }
 
-    function rewardMultipler() public view returns (uint256) {
-        return _rewardMultipler;
+    function rewardMultiplier() public view returns (uint256) {
+        return _rewardMultiplier;
     }
 
-    function setRewardMultipler(uint256 rewardMultipler_) public onlyRole(ORACLE_ROLE) {
-        require(rewardMultipler_ > 0, "Invalid RewardMultiplier");
-        require(rewardMultipler_ < 60000000000000000, "Invalid RewardMultiplier"); // 6bps
+    function setRewardMultiplier(uint256 rewardMultiplier_) public onlyRole(ORACLE_ROLE) {
+        require(rewardMultiplier_ > 0, "Invalid RewardMultiplier");
+        require(rewardMultiplier_ < 50000000000000000, "Invalid RewardMultiplier"); // 5bps
 
-        _rewardMultipler = _rewardMultipler.add(rewardMultipler_);
+        _rewardMultiplier = _rewardMultiplier.add(rewardMultiplier_);
 
-        emit RewardMultiplierUpdated(_rewardMultipler);
+        emit RewardMultiplierUpdated(_rewardMultiplier);
     }
 }
