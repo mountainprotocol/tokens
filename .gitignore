@@ -384,3 +384,5 @@ typechain-types
 cache
 artifacts
 
+# Mac
+.DS_Store
