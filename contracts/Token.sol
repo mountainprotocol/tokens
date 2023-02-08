@@ -105,6 +105,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     function transfer(address to, uint256 amount) public override returns (bool) {
         address owner = _msgSender();
         _transfer(owner, to, amount);
+
         return true;
     }
 
@@ -137,7 +138,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     }
 
     function unblacklist(address _addr) public onlyRole(BLACKLIST_ROLE) {
-        require(_blacklist[_addr], "Address already unblacklisted");
+        require(_blacklist[_addr], "Address is not blacklisted");
         _blacklist[_addr] = false;
         emit AddressUnBlacklisted(_addr);
     }

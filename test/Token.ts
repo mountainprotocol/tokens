@@ -209,6 +209,30 @@ describe("Token", () => {
       );
     });
 
+    it("should not unblacklist without blacklist role", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
+
+      await expect(
+        contract.unblacklist(owner.address)
+      ).to.be.revertedWith(
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
+      );
+    });
+
+    it("should unblacklist with blacklist role", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
+
+      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+
+      await expect(
+        contract.unblacklist(owner.address)
+      ).to.not.be.revertedWith(
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
+      );
+    });
+
     it("should pause when admin", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
@@ -302,6 +326,29 @@ describe("Token", () => {
       await expect(
         contract.transfer(acc1.address, 1)
       ).to.be.revertedWith('Address is blacklisted');
+    });
+
+    it("should not add an address already blacklisted", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
+
+      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.blacklist(acc1.address);
+
+      await expect(
+        contract.blacklist(acc1.address)
+      ).to.be.revertedWith("Address already blacklisted");
+    });
+
+    it("should not unblacklist an address not blacklisted", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
+
+      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+
+      await expect(
+        contract.unblacklist(owner.address)
+      ).to.be.revertedWith("Address is not blacklisted");
     });
   });
 
