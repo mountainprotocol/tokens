@@ -67,37 +67,27 @@ describe("Token", () => {
     });
   });
 
-  describe("TXs", () => {
+  describe("Transfer", () => {
     it("should transfer tokens between accounts", async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
 
-
-      // Transfer 10 tokens from owner to acc1
       expect(
         await contract.transfer(acc1.address, 10)
       ).to.changeTokenBalances(contract, [owner, acc1], [-10, 10]);
 
-      // Transfer 5 tokens from acc1 to acc2
-      // We use .connect(signer) to send a transaction from another account
       expect(
         await contract.connect(acc1).transfer(acc2.address, 5)
       ).to.changeTokenBalances(contract, [acc1, acc2], [-5, 5]);
     });
 
     it("should fail if sender doesn't have enough tokens", async () => {
-      const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
-      const initialAcc2Balance = await contract.balanceOf(acc2.address);
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
-      // Transfer 1 token from acc1 to acc2
-      // We use .connect(signer) to send a transaction from another account
+      const balance = await contract.balanceOf(owner.address);
+
       await expect(
-        contract.connect(acc1).transfer(acc2.address, 1)
+        contract.transfer(acc1.address, balance.add(1))
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
-
-      // Acc2 balance shouldn't have changed.
-      expect(await contract.balanceOf(acc2.address)).to.equal(
-        initialAcc2Balance
-      );
     });
 
     it("should emit Transfer events", async () => {
@@ -109,6 +99,16 @@ describe("Token", () => {
       await expect(contract.transfer(to, amount))
         .to.emit(contract, "Transfer")
         .withArgs(owner.address, to, amount);
+    });
+
+    it("should not allow transfers to null address", async () => {
+      const { contract } = await loadFixture(deployTokenFixture);
+
+      const amount = ethers.utils.parseUnits("1");
+
+      await expect(
+        contract.transfer(ethers.constants.AddressZero, amount)
+      ).to.be.revertedWith("ERC20: transfer to the zero address");
     });
   });
 
@@ -166,7 +166,7 @@ describe("Token", () => {
       const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
 
       await expect(
-        contract.setRewardMultipler(1)
+        contract.setRewardMultiplier(1)
       ).to.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${ORACLE_ROLE}`
       );
@@ -179,7 +179,7 @@ describe("Token", () => {
       await contract.grantRole(ORACLE_ROLE, owner.address);
 
       await expect(
-        contract.setRewardMultipler(1)
+        contract.setRewardMultiplier(1)
       ).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${ORACLE_ROLE}`
       );
@@ -306,10 +306,10 @@ describe("Token", () => {
   });
 
   // describe("Oracle", () => {
-  //   it("should update the reward multipler", async () => {
+  //   it("should update the reward multiplier", async () => {
   //     const { contract, owner } = await loadFixture(deployTokenFixture);
 
-  //     const result = await contract.setRewardMultipler();
+  //     const result = await contract.setRewardMultiplier();
   //   });
   // });
 
@@ -318,7 +318,7 @@ describe("Token", () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       expect(
-        await contract.rewardMultipler()
+        await contract.rewardMultiplier()
       ).to.equal(ethers.utils.parseUnits("1"));
     });
 
@@ -330,12 +330,12 @@ describe("Token", () => {
 
       // Daily 20% APR
       const interest = ethers.utils.parseUnits("0.000547945205479452"); // 547945205479452
-      const rewardMultipler = await contract.rewardMultipler();
+      const rewardMultiplier = await contract.rewardMultiplier();
 
-      const expected = rewardMultipler.add(interest);
+      const expected = rewardMultiplier.add(interest);
 
       await expect(
-        contract.setRewardMultipler(interest)
+        contract.setRewardMultiplier(interest)
       ).to.emit(contract, "RewardMultiplierUpdated").withArgs(expected);
     });
 
@@ -348,7 +348,7 @@ describe("Token", () => {
       const interest = ethers.utils.parseUnits("0");
 
       await expect(
-        contract.setRewardMultipler(interest)
+        contract.setRewardMultiplier(interest)
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
 
@@ -358,10 +358,10 @@ describe("Token", () => {
 
       await contract.grantRole(ORACLE_ROLE, owner.address);
 
-      const interest = ethers.utils.parseUnits("0.06");
+      const interest = ethers.utils.parseUnits("0.05");
 
       await expect(
-        contract.setRewardMultipler(interest)
+        contract.setRewardMultiplier(interest)
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
 
@@ -376,15 +376,15 @@ describe("Token", () => {
         await contract.totalSupply()
       ).to.equal(totalShares);
 
-      await contract.setRewardMultipler(interest);
+      await contract.setRewardMultiplier(interest);
 
-      const rewardMultipler = await contract.rewardMultipler();
-      const expected = totalShares.mul(rewardMultipler).div(ethers.utils.parseUnits("1"));
+      const rewardMultiplier = await contract.rewardMultiplier();
+      const expected = totalShares.mul(rewardMultiplier).div(ethers.utils.parseUnits("1"));
 
       expect(
         await contract.totalSupply()
       ).to.equal(expected);
-    })
+    });
   });
 
   describe("shares", () => {
@@ -393,23 +393,6 @@ describe("Token", () => {
 
       expect (await contract.balanceOf(acc1.address)).to.equal(0);
       expect (await contract.sharesOf(acc1.address)).to.equal(0);
-    });
-
-    it("should mint new shares", async () => {
-      const { contract, owner } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
-
-      const currentShares = await contract.totalShares();
-      const newShares = ethers.utils.parseUnits("1337");
-
-      const expected = currentShares.add(newShares);
-
-      await contract.grantRole(MINTER_ROLE, owner.address);
-      await contract.mint(owner.address, newShares);
-
-      expect (
-        await contract.totalShares()
-      ).to.equal(expected);
     });
 
     it("should not change amount of shares when updating reward multiplier", async () => {
@@ -423,10 +406,86 @@ describe("Token", () => {
       await contract.grantRole(ORACLE_ROLE, owner.address);
       await contract.mint(acc1.address, sharesToMint);
 
-      await contract.setRewardMultipler(ethers.utils.parseUnits("0.01"));
+      await contract.setRewardMultiplier(ethers.utils.parseUnits("0.01"));
 
 
       expect (await contract.sharesOf(acc1.address)).to.equal(sharesToMint);
+    });
+  });
+
+  describe("mint", () => {
+    it("should increment total shares when mint", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
+
+      await contract.grantRole(MINTER_ROLE, owner.address);
+
+      const totalShares = await contract.totalShares();
+      const mintAmount = ethers.utils.parseUnits("1");
+
+      await contract.mint(owner.address, mintAmount);
+
+      expect(
+        await contract.totalShares()
+      ).to.equal(totalShares.add(mintAmount));
+    });
+
+    it("should increment total supply when mint", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
+
+      await contract.grantRole(MINTER_ROLE, owner.address);
+
+      const totalSupply = await contract.totalSupply();
+      const mintAmount = ethers.utils.parseUnits("1");
+
+      await contract.mint(owner.address, mintAmount);
+
+      expect(
+        await contract.totalSupply()
+      ).to.equal(totalSupply.add(mintAmount));
+    });
+
+    it("should emit transfer event", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
+
+      await contract.grantRole(MINTER_ROLE, owner.address);
+
+      const mintAmount = ethers.utils.parseUnits("1");
+
+      await expect(
+        contract.mint(owner.address, mintAmount)
+      ).to.emit(contract,"Transfer").withArgs(ethers.constants.AddressZero, owner.address, mintAmount);
+    });
+
+    it("should mint shares to the correct address", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
+
+      await contract.grantRole(MINTER_ROLE, owner.address);
+
+      const mintAmount = ethers.utils.parseUnits("1");
+
+      await contract.mint(acc1.address, mintAmount)
+
+      expect(
+        await contract.sharesOf(acc1.address)
+      ).to.equal(mintAmount);
+    });
+
+    it("should not allow minting to the null adress", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
+
+      await contract.grantRole(MINTER_ROLE, owner.address);
+
+      const mintAmount = ethers.utils.parseUnits("1");
+
+
+      await expect(
+        contract.mint(ethers.constants.AddressZero, mintAmount)
+      ).to.be.revertedWith("ERC20: mint to the zero address");
     });
   });
 
@@ -438,13 +497,13 @@ describe("Token", () => {
       await contract.grantRole(BURNER_ROLE, owner.address);
 
       const accountShares = await contract.sharesOf(owner.address);
-      const amount = ethers.utils.parseUnits("1");
+      const burnAmount = ethers.utils.parseUnits("1");
 
-      await contract.burn(owner.address, amount)
+      await contract.burn(owner.address, burnAmount)
 
       expect(
         await contract.sharesOf(owner.address)
-      ).to.equal(accountShares.sub(amount));
+      ).to.equal(accountShares.sub(burnAmount));
     });
 
     it("should decrement total shares quantity when burning", async () => {
@@ -462,6 +521,32 @@ describe("Token", () => {
       expect(
         await contract.totalShares()
       ).to.equal(totalShares.sub(amount));
+    });
+
+    it("should not allow burning from null address", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
+
+      await contract.grantRole(BURNER_ROLE, owner.address);
+      const amount = ethers.utils.parseUnits("1");
+
+
+      await expect(
+        contract.burn(ethers.constants.AddressZero, amount)
+      ).to.be.revertedWith("ERC20: burn from the zero address");
+    });
+
+    it("should not allow burning when amount exceeds balance", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
+
+      await contract.grantRole(BURNER_ROLE, owner.address);
+      const balance = await contract.balanceOf(owner.address);
+
+
+      await expect(
+        contract.burn(owner.address, balance.add(1))
+      ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
   });
 });
