@@ -68,19 +68,22 @@ describe("Token", () => {
   });
 
   describe("Transfer", () => {
-    it("should transfer tokens between accounts", async () => {
+    it("should transfer tokens from one address to another", async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
+      const amount = ethers.utils.parseUnits("10");
 
-      expect(
-        await contract.transfer(acc1.address, 10)
-      ).to.changeTokenBalances(contract, [owner, acc1], [-10, 10]);
+      await expect(
+        contract.transfer(acc1.address, amount)
+      ).to.changeTokenBalances(contract, [owner, acc1], [amount.mul(-1), amount]);
 
-      expect(
-        await contract.connect(acc1).transfer(acc2.address, 5)
-      ).to.changeTokenBalances(contract, [acc1, acc2], [-5, 5]);
+      const amount2 = ethers.utils.parseUnits("5");
+
+      await expect(
+        contract.connect(acc1).transfer(acc2.address, amount2)
+      ).to.changeTokenBalances(contract, [acc1, acc2], [amount2.mul(-1), amount2]);
     });
 
-    it("should fail if sender doesn't have enough tokens", async () => {
+    it("should fail if transfer amount exceeds balance", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       const balance = await contract.balanceOf(owner.address);
@@ -101,7 +104,7 @@ describe("Token", () => {
         .withArgs(owner.address, to, amount);
     });
 
-    it("should not allow transfers to null address", async () => {
+    it("should fail if transfer to the zero address", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       const amount = ethers.utils.parseUnits("1");
@@ -109,6 +112,24 @@ describe("Token", () => {
       await expect(
         contract.transfer(ethers.constants.AddressZero, amount)
       ).to.be.revertedWith("ERC20: transfer to the zero address");
+    });
+
+    it("should support supply as argument but transfer shares", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
+      const rewardMultiplier = ethers.utils.parseUnits("0.01");
+      const amount = ethers.utils.parseUnits("100");
+
+      // We use fixed-point arithmetic to avoid precision issues
+      const sharesBeforeTransfer = await contract.sharesOf(owner.address);
+      const sharesAmount = amount.mul(ethers.utils.parseUnits("1")).div(rewardMultiplier.add(ethers.utils.parseUnits("1")));
+
+      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.setRewardMultiplier(rewardMultiplier);
+      await contract.transfer(acc1.address, amount)
+
+      expect(await contract.sharesOf(acc1.address)).to.equal(sharesAmount);
+      expect(await contract.sharesOf(owner.address)).to.equal(sharesBeforeTransfer.sub(sharesAmount));
     });
   });
 
@@ -458,6 +479,24 @@ describe("Token", () => {
 
       expect (await contract.sharesOf(acc1.address)).to.equal(sharesToMint);
     });
+
+    it("should return the amount of shares based on the supply", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
+      const amount = ethers.utils.parseUnits("14");
+      const rewardMultiplier = ethers.utils.parseUnits("0.01");
+
+      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.setRewardMultiplier(rewardMultiplier);
+
+      expect(
+        await contract.getSharesBySupply(amount)
+      ).to.equal(
+        // We use fixed-point arithmetic to avoid precision issues
+        amount
+          .mul(ethers.utils.parseUnits("1"))
+          .div(rewardMultiplier.add(ethers.utils.parseUnits("1"))));
+    });
   });
 
   describe("mint", () => {
@@ -522,7 +561,7 @@ describe("Token", () => {
     });
 
     it("should not allow minting to the null adress", async () => {
-      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const { contract, owner } = await loadFixture(deployTokenFixture);
       const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
       await contract.grantRole(MINTER_ROLE, owner.address);

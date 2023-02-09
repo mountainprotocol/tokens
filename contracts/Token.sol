@@ -7,26 +7,22 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-// import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
-// TODO: Permit
 // TODO: Upgrade (Proxy)
-// TODO: Snapshot
-// TODO: Live Oracle
+// TODO: Permit
+// TODO: Lock functions gracetime period
 
 using SafeMath for uint256;
 
 // Author: @mattiascaricato
 contract Token is ERC20, Ownable, AccessControl, Pausable {
-    // using Chainlink for Chainlink.Request;
     using SafeERC20 for IERC20;
 
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
     uint256 private _rewardMultiplier = 1e18;
     uint256 private _totalShares;
-    uint256 private _totalSupply;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -40,14 +36,11 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     constructor(string memory name_, string memory symbol_, uint256 initialShares) ERC20(name_, symbol_) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _mint(_msgSender(), initialShares);
-
-        // Chainlink contract addresses Goerli
-        // setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
-        // setChainlinkOracle(0xCC79157eb46F5624204f47AB42b3906cAA40eaB7);
     }
 
     function totalSupply() public view override returns (uint256) {
-        return _totalShares * _rewardMultiplier / 1e18;
+        // Divided by ie18 because both variables have 18 decimals (ie18^2)
+        return _totalShares.mul(_rewardMultiplier).div(1e18);
     }
 
     function totalShares() public view returns (uint256) {
@@ -59,30 +52,31 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     }
 
     function balanceOf(address account) public view override returns (uint256) {
-        return sharesOf(account) * _rewardMultiplier / 1e18;
+        return sharesOf(account).mul(_rewardMultiplier).div(1e18);
     }
 
-    function _mint(address to, uint256 amount) internal override {
+    function _mint(address to, uint256 sharesAmount) internal override {
         require(to != address(0), "ERC20: mint to the zero address");
 
-        _beforeTokenTransfer(address(0), to, amount);
+        _beforeTokenTransfer(address(0), to, sharesAmount);
 
-        _totalShares += amount;
+        _totalShares = _totalShares.add(sharesAmount);
 
         unchecked {
             // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
-            _shares[to] += amount;
+            _shares[to] = _shares[to].add(sharesAmount);
         }
-        emit Transfer(address(0), to, amount);
+        emit Transfer(address(0), to, sharesAmount);
 
-        _afterTokenTransfer(address(0), to, amount);
+        _afterTokenTransfer(address(0), to, sharesAmount);
     }
 
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
-        _mint(to, amount);
+        uint256 sharesAmount = getSharesBySupply(amount);
+        _mint(to, sharesAmount);
     }
 
-    function _transfer(address from, address to, uint256 sharesAmount) internal override {
+    function _transferShares(address from, address to, uint256 sharesAmount) internal {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
 
@@ -91,10 +85,10 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         uint256 fromShares = _shares[from];
         require(fromShares >= sharesAmount, "ERC20: transfer amount exceeds balance");
         unchecked {
-            _shares[from] = fromShares - sharesAmount;
+            _shares[from] = fromShares.sub(sharesAmount);
             // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
             // decrementing then incrementing.
-            _shares[to] += sharesAmount;
+            _shares[to] = _shares[to].add(sharesAmount);
         }
 
         emit Transfer(from, to, sharesAmount);
@@ -104,31 +98,41 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
 
     function transfer(address to, uint256 amount) public override returns (bool) {
         address owner = _msgSender();
-        _transfer(owner, to, amount);
+        uint256 sharesAmount = getSharesBySupply(amount);
+        _transferShares(owner, to, sharesAmount);
 
         return true;
     }
 
-    function _burn(address account, uint256 amount) internal override {
+     /**
+     * @return the amount of shares that corresponds to `supplyAmount` protocol-controlled token.
+     */
+    function getSharesBySupply(uint256 supplyAmount) public view returns (uint256) {
+        // We use fixed-point arithmetic to avoid precision issues
+        return supplyAmount.mul(1e18).div(rewardMultiplier());
+    }
+
+    function _burn(address account, uint256 sharesAmount) internal override {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(account, address(0), amount);
+        _beforeTokenTransfer(account, address(0), sharesAmount);
 
         uint256 accountShares = sharesOf(account);
-        require(accountShares >= amount, "ERC20: burn amount exceeds balance");
+        require(accountShares >= sharesAmount, "ERC20: burn amount exceeds balance");
         unchecked {
-            _shares[account] = accountShares - amount;
+            _shares[account] = accountShares.sub(sharesAmount);
             // Overflow not possible: amount <= accountBalance <= totalSupply.
-            _totalShares -= amount;
+            _totalShares = _totalShares.sub(sharesAmount);
         }
 
-        emit Transfer(account, address(0), amount);
+        emit Transfer(account, address(0), sharesAmount);
 
-        _afterTokenTransfer(account, address(0), amount);
+        _afterTokenTransfer(account, address(0), sharesAmount);
     }
 
     function burn(address from, uint256 amount) public onlyRole(BURNER_ROLE) {
-        _burn(from, amount);
+        uint256 sharesAmount = getSharesBySupply(amount);
+        _burn(from, sharesAmount);
     }
 
     function blacklist(address _addr) public onlyRole(BLACKLIST_ROLE) {
@@ -164,30 +168,6 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     function unpause() public onlyOwner {
         super._unpause();
     }
-
-    // function setRewardMultiplier() public returns (bytes32) {
-    //     bytes32 jobId = "ca98366cc7314957b8c012c72f05aeeb";
-    //     uint256 fee = (1 * LINK_DIVISIBILITY) / 10;
-
-    //     Chainlink.Request memory req = buildChainlinkRequest(
-    //         jobId,
-    //         owner(),
-    //         this.oracleCallback.selector
-    //     );
-
-    //     req.add("get", "https://reward-multiplier.free.beeceptor.com/");
-
-    //     return sendChainlinkRequest(req, fee);
-    // }
-
-    // function oracleCallback(bytes32 _requestId, uint256 _result) public {
-    //     require(
-    //         msg.sender == chainlinkOracleAddress(),
-    //         "Only the oracle is allowed to call this function"
-    //     );
-
-    //     _rewardMultiplier = _result;
-    // }
 
     function rewardMultiplier() public view returns (uint256) {
         return _rewardMultiplier;
