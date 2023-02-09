@@ -15,9 +15,9 @@ const main = async () => {
 
   const Token = await ethers.getContractFactory("Token");
   const token = await Token.deploy(
-    "Mountain Protocol Token POC",
-    "USD-POC",
-    100_000_000, // 100M
+    "Mountain Protocol Token",
+    "USDM",
+    ethers.utils.parseUnits("100000000"), // 100M
   );
   await token.deployed();
 
