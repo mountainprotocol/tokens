@@ -7,8 +7,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "hardhat/console.sol";
 
+// TODO: pause for transfer
+// TODO: approve
+// TODO: transferFrom
 // TODO: Upgrade (Proxy)
 // TODO: Permit
 // TODO: Lock functions gracetime period
@@ -38,13 +40,28 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         _mint(_msgSender(), initialShares);
     }
 
-    function totalSupply() public view override returns (uint256) {
-        // Divided by ie18 because both variables have 18 decimals (ie18^2)
-        return _totalShares.mul(_rewardMultiplier).div(1e18);
+     /**
+     * @return the amount of shares that corresponds to `supplyAmount` protocol-controlled token.
+     */
+    function getSharesBySupply(uint256 supplyAmount) public view returns (uint256) {
+        // We use fixed-point arithmetic to avoid precision issues
+        return supplyAmount.mul(1e18).div(rewardMultiplier());
+    }
+
+    /**
+     * @return the amount of tokens that corresponds to `sharesAmount` protocol-controlled shares.
+     */
+    function getSupplyByShares(uint256 sharesAmount) public view returns (uint256) {
+        return sharesAmount.mul(rewardMultiplier()).div(1e18);
     }
 
     function totalShares() public view returns (uint256) {
         return _totalShares;
+    }
+
+    function totalSupply() public view override returns (uint256) {
+        // Divided by ie18 because both variables have 18 decimals (ie18^2)
+        return getSupplyByShares(_totalShares);
     }
 
     function sharesOf(address account) public view returns (uint256) {
@@ -52,7 +69,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     }
 
     function balanceOf(address account) public view override returns (uint256) {
-        return sharesOf(account).mul(_rewardMultiplier).div(1e18);
+        return getSupplyByShares(sharesOf(account));
     }
 
     function _mint(address to, uint256 sharesAmount) internal override {
@@ -104,14 +121,6 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         return true;
     }
 
-     /**
-     * @return the amount of shares that corresponds to `supplyAmount` protocol-controlled token.
-     */
-    function getSharesBySupply(uint256 supplyAmount) public view returns (uint256) {
-        // We use fixed-point arithmetic to avoid precision issues
-        return supplyAmount.mul(1e18).div(rewardMultiplier());
-    }
-
     function _burn(address account, uint256 sharesAmount) internal override {
         require(account != address(0), "ERC20: burn from the zero address");
 
@@ -156,8 +165,9 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         address to,
         uint256 amount
     ) internal override {
+        // Each blacklist check is an SLOAD, which is gas intensive.
+        // We only block sender not receiver, so we don't tax every user
         require(!isBlacklisted(from), "Address is blacklisted");
-        require(!isBlacklisted(to), "Address is blacklisted");
         super._beforeTokenTransfer(from, to, amount);
     }
 
