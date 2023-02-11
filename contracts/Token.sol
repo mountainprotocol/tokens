@@ -1,30 +1,32 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-// TODO: pause for transfer
-// TODO: approve
-// TODO: transferFrom
 // TODO: Upgrade (Proxy)
 // TODO: Permit
 // TODO: Lock functions gracetime period
+// TODO: AllowanceCrowdsale instead of allowance mapping
 
 using SafeMath for uint256;
 
 // Author: @mattiascaricato
-contract Token is ERC20, Ownable, AccessControl, Pausable {
+contract Token is IERC20, Ownable, AccessControl, Pausable {
     using SafeERC20 for IERC20;
+
+    string private _name;
+    string private _symbol;
+    uint256 private _rewardMultiplier = 1e18;
+    uint256 private _totalShares;
 
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
-    uint256 private _rewardMultiplier = 1e18;
-    uint256 private _totalShares;
+    mapping(address => mapping(address => uint256)) private _allowances;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -35,13 +37,34 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     event AddressUnBlacklisted(address indexed addr);
     event RewardMultiplierUpdated(uint256 indexed addr);
 
-    constructor(string memory name_, string memory symbol_, uint256 initialShares) ERC20(name_, symbol_) {
+    constructor(string memory name_, string memory symbol_, uint256 initialShares) {
+        _name = name_;
+        _symbol = symbol_;
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _mint(_msgSender(), initialShares);
     }
 
+    /**
+     * @dev Returns the name of the token.
+     */
+    function name() public view returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev Returns the symbol of the token, usually a shorter version of the
+     * name.
+     */
+    function symbol() public view returns (string memory) {
+        return _symbol;
+    }
+
+    function decimals() public pure returns (uint8) {
+        return 18;
+    }
+
      /**
-     * @return the amount of shares that corresponds to `supplyAmount` protocol-controlled token.
+     * @return the amount of shares that corresponds to `supplyAmount` protocol-controlled tokens.
      */
     function getSharesBySupply(uint256 supplyAmount) public view returns (uint256) {
         // We use fixed-point arithmetic to avoid precision issues
@@ -49,7 +72,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     }
 
     /**
-     * @return the amount of tokens that corresponds to `sharesAmount` protocol-controlled shares.
+     * @return the amount of supply that corresponds to `sharesAmount` protocol-controlled shares.
      */
     function getSupplyByShares(uint256 sharesAmount) public view returns (uint256) {
         return sharesAmount.mul(rewardMultiplier()).div(1e18);
@@ -60,7 +83,6 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
     }
 
     function totalSupply() public view override returns (uint256) {
-        // Divided by ie18 because both variables have 18 decimals (ie18^2)
         return getSupplyByShares(_totalShares);
     }
 
@@ -72,7 +94,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         return getSupplyByShares(sharesOf(account));
     }
 
-    function _mint(address to, uint256 sharesAmount) internal override {
+    function _mint(address to, uint256 sharesAmount) private {
         require(to != address(0), "ERC20: mint to the zero address");
 
         _beforeTokenTransfer(address(0), to, sharesAmount);
@@ -93,7 +115,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         _mint(to, sharesAmount);
     }
 
-    function _transferShares(address from, address to, uint256 sharesAmount) internal {
+    function _transferShares(address from, address to, uint256 sharesAmount) private {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
 
@@ -113,7 +135,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         _afterTokenTransfer(from, to, sharesAmount);
     }
 
-    function transfer(address to, uint256 amount) public override returns (bool) {
+    function transfer(address to, uint256 amount) public returns (bool) {
         address owner = _msgSender();
         uint256 sharesAmount = getSharesBySupply(amount);
         _transferShares(owner, to, sharesAmount);
@@ -121,7 +143,7 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         return true;
     }
 
-    function _burn(address account, uint256 sharesAmount) internal override {
+    function _burn(address account, uint256 sharesAmount) private {
         require(account != address(0), "ERC20: burn from the zero address");
 
         _beforeTokenTransfer(account, address(0), sharesAmount);
@@ -164,12 +186,21 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         address from,
         address to,
         uint256 amount
-    ) internal override {
+    ) private view {
         // Each blacklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
         require(!isBlacklisted(from), "Address is blacklisted");
-        super._beforeTokenTransfer(from, to, amount);
+        // Useful for scenarios such as preventing trades until the end of an evaluation
+        // period, or having an emergency switch for freezing all token transfers in the
+        // event of a large bug.
+        require(!paused(), "Transfers not allowed while paused");
     }
+
+    function _afterTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) private view {}
 
     function pause() public onlyOwner {
         super._pause();
@@ -190,5 +221,129 @@ contract Token is ERC20, Ownable, AccessControl, Pausable {
         _rewardMultiplier = _rewardMultiplier.add(rewardMultiplier_);
 
         emit RewardMultiplierUpdated(_rewardMultiplier);
+    }
+
+    /**
+     * @dev See {IERC20-allowance}.
+     */
+    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+        return _allowances[owner][spender];
+    }
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
+     *
+     * This internal function is equivalent to `approve`, and can be used to
+     * e.g. set automatic allowances for certain subsystems, etc.
+     *
+     * Emits an {Approval} event.
+     *
+     * Requirements:
+     *
+     * - `owner` cannot be the zero address.
+     * - `spender` cannot be the zero address.
+     */
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    /**
+     * @dev See {IERC20-approve}.
+     *
+     * NOTE: If `amount` is the maximum `uint256`, the allowance is not updated on
+     * `transferFrom`. This is semantically equivalent to an infinite approval.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     */
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+        address owner = _msgSender();
+        _approve(owner, spender, amount);
+        return true;
+    }
+
+    /**
+     * @dev Updates `owner` s allowance for `spender` based on spent `amount`.
+     *
+     * Does not update the allowance amount in case of infinite allowance.
+     * Revert if not enough allowance is available.
+     *
+     * Might emit an {Approval} event.
+     */
+    function _spendAllowance(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        uint256 currentAllowance = allowance(owner, spender);
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "ERC20: insufficient allowance");
+            unchecked {
+                _approve(owner, spender, currentAllowance - amount);
+            }
+        }
+    }
+
+    /**
+     * @dev Atomically decreases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     * - `spender` must have allowance for the caller of at least
+     * `subtractedValue`.
+     */
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+        address owner = _msgSender();
+        uint256 currentAllowance = allowance(owner, spender);
+        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        unchecked {
+            _approve(owner, spender, currentAllowance - subtractedValue);
+        }
+
+        return true;
+    }
+
+    /**
+     * @dev See {IERC20-transferFrom}.
+     *
+     * Emits an {Approval} event indicating the updated allowance. This is not
+     * required by the EIP. See the note at the beginning of {ERC20}.
+     *
+     * NOTE: Does not update the allowance if the current allowance
+     * is the maximum `uint256`.
+     *
+     * Requirements:
+     *
+     * - `from` and `to` cannot be the zero address.
+     * - `from` must have a balance of at least `amount`.
+     * - the caller must have allowance for ``from``'s tokens of at least
+     * `amount`.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        address spender = _msgSender();
+        uint256 sharesAmount = getSharesBySupply(amount);
+        _spendAllowance(from, spender, sharesAmount);
+        _transferShares(from, to, sharesAmount);
+
+        return true;
     }
 }

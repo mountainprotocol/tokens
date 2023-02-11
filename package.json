@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/mountainprotocol/token-poc#readme",
   "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
     "@nomiclabs/hardhat-solhint": "^3.0.0",
     "@openzeppelin/test-helpers": "^0.5.16",
