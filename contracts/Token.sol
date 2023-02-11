@@ -59,6 +59,19 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         return _symbol;
     }
 
+    /**
+     * @dev Returns the number of decimals used to get its user representation.
+     * For example, if `decimals` equals `2`, a balance of `505` tokens should
+     * be displayed to a user as `5.05` (`505 / 10 ** 2`).
+     *
+     * Tokens usually opt for a value of 18, imitating the relationship between
+     * Ether and Wei. This is the default value returned by this function, unless
+     * it's overridden.
+     *
+     * NOTE: This information is only used for _display_ purposes: it in
+     * no way affects any of the arithmetic of the contract, including
+     * {IERC20-balanceOf} and {IERC20-transfer}.
+     */
     function decimals() public pure returns (uint8) {
         return 18;
     }
@@ -82,6 +95,12 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         return _totalShares;
     }
 
+    /**
+     * @return the amount of tokens in existence.
+     *
+     * @dev Always equals to `getSupplyByShares()` since token amount
+     * is pegged to the total amount of shares controlled by the protocol.
+     */
     function totalSupply() public view returns (uint256) {
         return getSupplyByShares(_totalShares);
     }
@@ -90,6 +109,12 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         return _shares[account];
     }
 
+    /**
+     * @return the amount of tokens owned by the `account`.
+     *
+     * @dev Balances are dynamic and equal the `account`'s share in the amount of the
+     * total reserves controlled by the protocol. See `sharesOf`.
+     */
     function balanceOf(address account) public view returns (uint256) {
         return getSupplyByShares(sharesOf(account));
     }
@@ -110,6 +135,16 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         _afterTokenTransfer(address(0), to, sharesAmount);
     }
 
+    /**
+     * @dev Creates `sharesAmount` and assigns them to `to` account, increasing the total amount of shares not the total supply (directly).
+     *
+     * Emits a {Transfer} event with `from` set to the zero address.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     * - the contract must not be paused.
+     */
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         uint256 sharesAmount = getSharesBySupply(amount);
         _mint(to, sharesAmount);
@@ -135,14 +170,6 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         _afterTokenTransfer(from, to, sharesAmount);
     }
 
-    function transfer(address to, uint256 amount) public returns (bool) {
-        address owner = _msgSender();
-        uint256 sharesAmount = getSharesBySupply(amount);
-        _transferShares(owner, to, sharesAmount);
-
-        return true;
-    }
-
     function _burn(address account, uint256 sharesAmount) private {
         require(account != address(0), "ERC20: burn from the zero address");
 
@@ -161,9 +188,35 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         _afterTokenTransfer(account, address(0), sharesAmount);
     }
 
+    /**
+     * @notice Destroys `sharesAmount` shares from `from` account's holdings, decreasing the total amount of shares not the total supply (directly).
+     * @dev This doesn't decrease the token total supply.
+     *
+     * Requirements:
+     *
+     * - `from` cannot be the zero address.
+     * - `from` must hold at least `sharesAmount` shares.
+     * - the contract must not be paused.
+     */
     function burn(address from, uint256 amount) public onlyRole(BURNER_ROLE) {
         uint256 sharesAmount = getSharesBySupply(amount);
         _burn(from, sharesAmount);
+    }
+
+    /**
+     * @dev See {IERC20-transfer}.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     * - the caller must have a balance of at least `amount`.
+     */
+    function transfer(address to, uint256 amount) public returns (bool) {
+        address owner = _msgSender();
+        uint256 sharesAmount = getSharesBySupply(amount);
+        _transferShares(owner, to, sharesAmount);
+
+        return true;
     }
 
     function blacklist(address _addr) public onlyRole(BLACKLIST_ROLE) {
@@ -224,13 +277,6 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
     }
 
     /**
-     * @dev See {IERC20-allowance}.
-     */
-    function allowance(address owner, address spender) public view returns (uint256) {
-        return _allowances[owner][spender];
-    }
-
-    /**
      * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
      *
      * This private function is equivalent to `approve`, and can be used to
@@ -270,6 +316,13 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         _approve(owner, spender, amount);
 
         return true;
+    }
+
+    /**
+     * @dev See {IERC20-allowance}.
+     */
+    function allowance(address owner, address spender) public view returns (uint256) {
+        return _allowances[owner][spender];
     }
 
     /**
