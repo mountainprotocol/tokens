@@ -82,7 +82,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         return _totalShares;
     }
 
-    function totalSupply() public view override returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         return getSupplyByShares(_totalShares);
     }
 
@@ -90,7 +90,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         return _shares[account];
     }
 
-    function balanceOf(address account) public view override returns (uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return getSupplyByShares(sharesOf(account));
     }
 
@@ -226,14 +226,14 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+    function allowance(address owner, address spender) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
     /**
      * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
      *
-     * This internal function is equivalent to `approve`, and can be used to
+     * This private function is equivalent to `approve`, and can be used to
      * e.g. set automatic allowances for certain subsystems, etc.
      *
      * Emits an {Approval} event.
@@ -247,7 +247,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         address owner,
         address spender,
         uint256 amount
-    ) internal virtual {
+    ) private {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
@@ -265,9 +265,10 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    function approve(address spender, uint256 amount) public returns (bool) {
         address owner = _msgSender();
         _approve(owner, spender, amount);
+
         return true;
     }
 
@@ -283,7 +284,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         address owner,
         address spender,
         uint256 amount
-    ) internal virtual {
+    ) private {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
             require(currentAllowance >= amount, "ERC20: insufficient allowance");
@@ -307,7 +308,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
         address owner = _msgSender();
         uint256 currentAllowance = allowance(owner, spender);
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
@@ -338,7 +339,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         address from,
         address to,
         uint256 amount
-    ) public virtual override returns (bool) {
+    ) public returns (bool) {
         address spender = _msgSender();
         uint256 sharesAmount = getSharesBySupply(amount);
         _spendAllowance(from, spender, sharesAmount);

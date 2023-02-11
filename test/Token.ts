@@ -2,7 +2,16 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
+const { AddressZero } = ethers.constants
 const toBaseUnit = (value: number) => ethers.utils.parseUnits(value.toString());
+const getRole = (role: string) => ethers.utils.keccak256(ethers.utils.toUtf8Bytes(role));
+
+const roles = {
+  MINTER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE')),
+  BURNER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE')),
+  BLACKLIST: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE')),
+  ORACLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE')),
+}
 
 describe("Token", () => {
   const name = "Mountain Protocol USD Token";
@@ -124,13 +133,12 @@ describe("Token", () => {
       const amount = toBaseUnit(1);
 
       await expect(
-        contract.transfer(ethers.constants.AddressZero, amount)
+        contract.transfer(AddressZero, amount)
       ).to.be.revertedWith("ERC20: transfer to the zero address");
     });
 
     it("should support supply as argument but transfer shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
       const amount = toBaseUnit(100);
       const rewardMultiplier = toBaseUnit(0.01);
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
@@ -140,7 +148,7 @@ describe("Token", () => {
       const sharesBeforeTransfer = await contract.sharesOf(owner.address);
       const sharesAmount = amount.mul(toBaseUnit(1)).div(totalRewardMultiplier);
 
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
       await contract.setRewardMultiplier(rewardMultiplier);
       await contract.transfer(acc1.address, amount)
 
@@ -152,121 +160,111 @@ describe("Token", () => {
   describe("Access Control", () => {
     it("should not mint without minter role", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
       await expect(
         contract.connect(acc1).mint(acc1.address, 1000)
       ).to.be.revertedWith(
-        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${MINTER_ROLE}`
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.MINTER}`
       );
     });
 
     it("should mint with minter role", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
-      await contract.grantRole(MINTER_ROLE, acc1.address);
+      await contract.grantRole(roles.MINTER, acc1.address);
 
       await expect(
         contract.connect(acc1).mint(acc1.address, 100)
       ).to.not.be.revertedWith(
-        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${MINTER_ROLE}`
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.MINTER}`
       );
     });
 
     it("should not burn without burner role", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
-      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
 
       await expect(
         contract.connect(acc1).burn(acc1.address, 1000)
       ).to.be.revertedWith(
-        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${BURNER_ROLE}`
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.BURNER}`
       );
     });
 
     it("should burn with burner role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
 
-      await contract.grantRole(BURNER_ROLE, owner.address);
+      await contract.grantRole(roles.BURNER, owner.address);
 
       await expect(
         contract.burn(owner.address, 1)
       ).to.not.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BURNER_ROLE}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BURNER}`
       );
     });
 
     it("should not set the reward multiplier without oracle role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
 
       await expect(
         contract.setRewardMultiplier(1)
       ).to.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${ORACLE_ROLE}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`
       );
     });
 
     it("should set the reward multiplier with oracle role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
 
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
 
       await expect(
         contract.setRewardMultiplier(1)
       ).to.not.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${ORACLE_ROLE}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`
       );
     });
 
     it("should not blacklist without blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
       await expect(
         contract.blacklist(owner.address)
       ).to.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
       );
     });
 
     it("should blacklist with blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
-      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.grantRole(roles.BLACKLIST, owner.address);
 
       await expect(
         contract.blacklist(owner.address)
       ).to.not.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
       );
     });
 
     it("should not unblacklist without blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
       await expect(
         contract.unblacklist(owner.address)
       ).to.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
       );
     });
 
     it("should unblacklist with blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
-      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.grantRole(roles.BLACKLIST, owner.address);
 
       await expect(
         contract.unblacklist(owner.address)
       ).to.not.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${BLACKLIST_ROLE}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
       );
     });
 
@@ -318,9 +316,8 @@ describe("Token", () => {
   describe("Blacklist", () => {
     it("should add address to the blacklist", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
-      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.grantRole(roles.BLACKLIST, owner.address);
       await contract.blacklist(acc1.address);
 
       expect(
@@ -330,9 +327,8 @@ describe("Token", () => {
 
     it("should remove an address from the blacklist", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
-      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.grantRole(roles.BLACKLIST, owner.address);
       await contract.blacklist(acc1.address);
       await contract.unblacklist(acc1.address);
 
@@ -343,9 +339,8 @@ describe("Token", () => {
 
     it("should not transfer when from address is blacklisted", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
-      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.grantRole(roles.BLACKLIST, owner.address);
       await contract.blacklist(owner.address);
 
       await expect(
@@ -357,9 +352,8 @@ describe("Token", () => {
       // Each blacklist check is an SLOAD, which is gas intensive.
       // We only block sender not receiver, so we don't tax every user
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
-      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.grantRole(roles.BLACKLIST, owner.address);
       await contract.blacklist(acc1.address);
 
       await expect(
@@ -369,9 +363,8 @@ describe("Token", () => {
 
     it("should not add an address already blacklisted", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
-      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.grantRole(roles.BLACKLIST, owner.address);
       await contract.blacklist(acc1.address);
 
       await expect(
@@ -381,9 +374,8 @@ describe("Token", () => {
 
     it("should not unblacklist an address not blacklisted", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BLACKLIST_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE'));
 
-      await contract.grantRole(BLACKLIST_ROLE, owner.address);
+      await contract.grantRole(roles.BLACKLIST, owner.address);
 
       await expect(
         contract.unblacklist(owner.address)
@@ -394,10 +386,9 @@ describe("Token", () => {
   describe("Pause", () => {
     it("should allow minting when unpaused", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
       const tokensAmount = toBaseUnit(10);
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
 
       await expect(
         contract.mint(acc1.address, tokensAmount)
@@ -406,10 +397,9 @@ describe("Token", () => {
 
     it("should not allow minting when paused", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
       const tokensAmount = toBaseUnit(10);
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
       await contract.pause();
 
       await expect(
@@ -419,10 +409,9 @@ describe("Token", () => {
 
     it("should allow burning when unpaused", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
       const tokensAmount = toBaseUnit(10);
 
-      await contract.grantRole(BURNER_ROLE, owner.address);
+      await contract.grantRole(roles.BURNER, owner.address);
 
       await expect(
         contract.burn(owner.address, tokensAmount)
@@ -431,10 +420,9 @@ describe("Token", () => {
 
     it("should not allow burning when paused", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
       const tokensAmount = toBaseUnit(10);
 
-      await contract.grantRole(BURNER_ROLE, owner.address);
+      await contract.grantRole(roles.BURNER, owner.address);
       await contract.pause();
 
       await expect(
@@ -463,14 +451,6 @@ describe("Token", () => {
     });
   });
 
-  // describe("Oracle", () => {
-  //   it("should update the reward multiplier", async () => {
-  //     const { contract, owner } = await loadFixture(deployTokenFixture);
-
-  //     const result = await contract.setRewardMultiplier();
-  //   });
-  // });
-
   describe("Reward Multiplier", () => {
     it("should initialize with 1", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
@@ -482,9 +462,8 @@ describe("Token", () => {
 
     it("should sum the reward multiplier", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
 
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
 
       const interest = toBaseUnit(0.000547945205479452); // Daily 20% APR
       const rewardMultiplier = await contract.rewardMultiplier();
@@ -498,9 +477,8 @@ describe("Token", () => {
 
     it("should not support reward multiplier below 0", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
 
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
 
       const interest = toBaseUnit(0);
 
@@ -511,9 +489,8 @@ describe("Token", () => {
 
     it("should not support a reward multiplier above 6bps", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
 
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
 
       const interest = toBaseUnit(0.05);
 
@@ -524,10 +501,9 @@ describe("Token", () => {
 
     it("should reflect the dynamic supply", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
       const interest = toBaseUnit(0.01);
 
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
 
       expect(
         await contract.totalSupply()
@@ -547,14 +523,12 @@ describe("Token", () => {
   describe("balance", () => {
     it("should return the amount of dynamic supply and not the amount of shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
       const tokensAmount = toBaseUnit(10);
       const rewardMultiplier = toBaseUnit(0.01);
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
       await contract.mint(acc1.address, tokensAmount);
       await contract.setRewardMultiplier(rewardMultiplier);
 
@@ -575,13 +549,11 @@ describe("Token", () => {
 
     it("should not change amount of shares when updating reward multiplier", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
 
       const sharesToMint = toBaseUnit(1);
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
       await contract.mint(acc1.address, sharesToMint);
 
       await contract.setRewardMultiplier(toBaseUnit(0.01));
@@ -592,12 +564,11 @@ describe("Token", () => {
 
     it("should return the amount of shares based on supply", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
       const amount = toBaseUnit(14);
       const rewardMultiplier = toBaseUnit(0.01);
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
       await contract.setRewardMultiplier(rewardMultiplier);
 
       expect(
@@ -610,12 +581,11 @@ describe("Token", () => {
 
     it("should return the amount of supply based on shares", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const ORACLE_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE'));
       const amount = toBaseUnit(14);
       const rewardMultiplier = toBaseUnit(0.01);
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
-      await contract.grantRole(ORACLE_ROLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
       await contract.setRewardMultiplier(rewardMultiplier);
 
       expect(
@@ -630,9 +600,8 @@ describe("Token", () => {
   describe("mint", () => {
     it("should increment total shares when mint", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
 
       const totalShares = await contract.totalShares();
       const mintAmount = toBaseUnit(1);
@@ -646,9 +615,8 @@ describe("Token", () => {
 
     it("should increment total supply when mint", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
 
       const totalSupply = await contract.totalSupply();
       const mintAmount = toBaseUnit(1);
@@ -662,22 +630,20 @@ describe("Token", () => {
 
     it("should emit transfer event", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
 
       const mintAmount = toBaseUnit(1);
 
       await expect(
         contract.mint(owner.address, mintAmount)
-      ).to.emit(contract,"Transfer").withArgs(ethers.constants.AddressZero, owner.address, mintAmount);
+      ).to.emit(contract,"Transfer").withArgs(AddressZero, owner.address, mintAmount);
     });
 
     it("should mint shares to correct address", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
 
       const mintAmount = toBaseUnit(1);
 
@@ -690,15 +656,14 @@ describe("Token", () => {
 
     it("should not allow minting to null adress", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const MINTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE'));
 
-      await contract.grantRole(MINTER_ROLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
 
       const mintAmount = toBaseUnit(1);
 
 
       await expect(
-        contract.mint(ethers.constants.AddressZero, mintAmount)
+        contract.mint(AddressZero, mintAmount)
       ).to.be.revertedWith("ERC20: mint to the zero address");
     });
   });
@@ -706,9 +671,8 @@ describe("Token", () => {
   describe("burn", () => {
     it("should decrement account shares when burning", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
 
-      await contract.grantRole(BURNER_ROLE, owner.address);
+      await contract.grantRole(roles.BURNER, owner.address);
 
       const accountShares = await contract.sharesOf(owner.address);
       const burnAmount = toBaseUnit(1);
@@ -722,9 +686,8 @@ describe("Token", () => {
 
     it("should decrement total shares quantity when burning", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
 
-      await contract.grantRole(BURNER_ROLE, owner.address);
+      await contract.grantRole(roles.BURNER, owner.address);
 
       const totalShares = await contract.totalShares();
       const accountShares = await contract.sharesOf(owner.address);
@@ -739,28 +702,174 @@ describe("Token", () => {
 
     it("should not allow burning from null address", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
 
-      await contract.grantRole(BURNER_ROLE, owner.address);
+      await contract.grantRole(roles.BURNER, owner.address);
       const amount = toBaseUnit(1);
 
 
       await expect(
-        contract.burn(ethers.constants.AddressZero, amount)
+        contract.burn(AddressZero, amount)
       ).to.be.revertedWith("ERC20: burn from the zero address");
     });
 
     it("should not allow burning when amount exceeds balance", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const BURNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE'));
 
-      await contract.grantRole(BURNER_ROLE, owner.address);
+      await contract.grantRole(roles.BURNER, owner.address);
       const balance = await contract.balanceOf(owner.address);
-
 
       await expect(
         contract.burn(owner.address, balance.add(1))
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
+
+    describe("Approve", () => {
+      it("should revert when spender is the zero address", async () => {
+        const { contract, owner } = await loadFixture(deployTokenFixture);
+      });
+    });
   });
+
+  // describe('Transfer From', () => {
+  //   // const spender = recipient;
+
+  //   describe('when the token owner is not the zero address', function () {
+  //     // const tokenOwner = initialHolder;
+
+  //     describe('when the recipient is not the zero address', function () {
+  //       // const to = anotherAccount;
+
+  //       describe('when the spender has enough allowance', function () {
+  //         beforeEach(async function () {
+  //           await this.token.approve(spender, initialSupply, { from: initialHolder });
+  //         });
+
+  //         describe('when the token owner has enough balance', function () {
+  //           const amount = initialSupply;
+
+  //           it('transfers the requested amount', async function () {
+  //             await this.token.transferFrom(tokenOwner, to, amount, { from: spender });
+
+  //             expect(await this.token.balanceOf(tokenOwner)).to.be.bignumber.equal('0');
+
+  //             expect(await this.token.balanceOf(to)).to.be.bignumber.equal(amount);
+  //           });
+
+  //           it('decreases the spender allowance', async function () {
+  //             await this.token.transferFrom(tokenOwner, to, amount, { from: spender });
+
+  //             expect(await this.token.allowance(tokenOwner, spender)).to.be.bignumber.equal('0');
+  //           });
+
+  //           it('emits a transfer event', async function () {
+  //             expectEvent(await this.token.transferFrom(tokenOwner, to, amount, { from: spender }), 'Transfer', {
+  //               from: tokenOwner,
+  //               to: to,
+  //               value: amount,
+  //             });
+  //           });
+
+  //           it('emits an approval event', async function () {
+  //             expectEvent(await this.token.transferFrom(tokenOwner, to, amount, { from: spender }), 'Approval', {
+  //               owner: tokenOwner,
+  //               spender: spender,
+  //               value: await this.token.allowance(tokenOwner, spender),
+  //             });
+  //           });
+  //         });
+
+  //         describe('when the token owner does not have enough balance', function () {
+  //           const amount = initialSupply;
+
+  //           beforeEach('reducing balance', async function () {
+  //             await this.token.transfer(to, 1, { from: tokenOwner });
+  //           });
+
+  //           it('reverts', async function () {
+  //             await expectRevert(
+  //               this.token.transferFrom(tokenOwner, to, amount, { from: spender }),
+  //               `${errorPrefix}: transfer amount exceeds balance`,
+  //             );
+  //           });
+  //         });
+  //       });
+
+  //       describe('when the spender does not have enough allowance', function () {
+  //         const allowance = initialSupply.subn(1);
+
+  //         beforeEach(async function () {
+  //           await this.token.approve(spender, allowance, { from: tokenOwner });
+  //         });
+
+  //         describe('when the token owner has enough balance', function () {
+  //           const amount = initialSupply;
+
+  //           it('reverts', async function () {
+  //             await expectRevert(
+  //               this.token.transferFrom(tokenOwner, to, amount, { from: spender }),
+  //               `${errorPrefix}: insufficient allowance`,
+  //             );
+  //           });
+  //         });
+
+  //         describe('when the token owner does not have enough balance', function () {
+  //           const amount = allowance;
+
+  //           beforeEach('reducing balance', async function () {
+  //             await this.token.transfer(to, 2, { from: tokenOwner });
+  //           });
+
+  //           it('reverts', async function () {
+  //             await expectRevert(
+  //               this.token.transferFrom(tokenOwner, to, amount, { from: spender }),
+  //               `${errorPrefix}: transfer amount exceeds balance`,
+  //             );
+  //           });
+  //         });
+  //       });
+
+  //       describe('when the spender has unlimited allowance', function () {
+  //         beforeEach(async function () {
+  //           await this.token.approve(spender, MAX_UINT256, { from: initialHolder });
+  //         });
+
+  //         it('does not decrease the spender allowance', async function () {
+  //           await this.token.transferFrom(tokenOwner, to, 1, { from: spender });
+
+  //           expect(await this.token.allowance(tokenOwner, spender)).to.be.bignumber.equal(MAX_UINT256);
+  //         });
+
+  //         it('does not emit an approval event', async function () {
+  //           expectEvent.notEmitted(await this.token.transferFrom(tokenOwner, to, 1, { from: spender }), 'Approval');
+  //         });
+  //       });
+  //     });
+
+  //     describe('when the recipient is the zero address', function () {
+  //       const amount = initialSupply;
+  //       const to = ZERO_ADDRESS;
+
+  //       beforeEach(async function () {
+  //         await this.token.approve(spender, amount, { from: tokenOwner });
+  //       });
+
+  //       it('reverts', async function () {
+  //         await expectRevert(
+  //           this.token.transferFrom(tokenOwner, to, amount, { from: spender }),
+  //           `${errorPrefix}: transfer to the zero address`,
+  //         );
+  //       });
+  //     });
+  //   });
+
+  //   describe('when the token owner is the zero address', function () {
+  //     const amount = 0;
+  //     const tokenOwner = ZERO_ADDRESS;
+  //     const to = recipient;
+
+  //     it('reverts', async function () {
+  //       await expectRevert(this.token.transferFrom(tokenOwner, to, amount, { from: spender }), 'from the zero address');
+  //     });
+  //   });
+  // });
 });
