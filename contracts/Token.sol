@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 // TODO: Upgrade (Proxy)
 // TODO: Permit
 // TODO: Lock functions gracetime period
-// TODO: AllowanceCrowdsale instead of allowance mapping
 
 using SafeMath for uint256;
 
@@ -110,7 +109,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
     }
 
     /**
-     * @return the amount of tokens owned by the `account`.
+     * @return the the account balance owned by `account`.
      *
      * @dev Balances are dynamic and equal the `account`'s share in the amount of the
      * total reserves controlled by the protocol. See `sharesOf`.
@@ -216,20 +215,20 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         return true;
     }
 
-    function blacklist(address _addr) public onlyRole(BLACKLIST_ROLE) {
-        require(!_blacklist[_addr], "Address already blacklisted");
-        _blacklist[_addr] = true;
-        emit AddressBlacklisted(_addr);
+    function blacklist(address account) public onlyRole(BLACKLIST_ROLE) {
+        require(!_blacklist[account], "Address already blacklisted");
+        _blacklist[account] = true;
+        emit AddressBlacklisted(account);
     }
 
-    function unblacklist(address _addr) public onlyRole(BLACKLIST_ROLE) {
-        require(_blacklist[_addr], "Address is not blacklisted");
-        _blacklist[_addr] = false;
-        emit AddressUnBlacklisted(_addr);
+    function unblacklist(address account) public onlyRole(BLACKLIST_ROLE) {
+        require(_blacklist[account], "Address is not blacklisted");
+        _blacklist[account] = false;
+        emit AddressUnBlacklisted(account);
     }
 
-    function isBlacklisted(address _addr) public view returns (bool) {
-        return _blacklist[_addr];
+    function isBlacklisted(address account) public view returns (bool) {
+        return _blacklist[account];
     }
 
     function _beforeTokenTransfer(
@@ -332,11 +331,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
      *
      * Might emit an {Approval} event.
      */
-    function _spendAllowance(
-        address owner,
-        address spender,
-        uint256 amount
-    ) private {
+    function _spendAllowance(address owner, address spender, uint256 amount) private {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
             require(currentAllowance >= amount, "ERC20: insufficient allowance");
@@ -387,11 +382,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
      * - the caller must have allowance for ``from``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) public returns (bool) {
         address spender = _msgSender();
         uint256 sharesAmount = getSharesBySupply(amount);
         _spendAllowance(from, spender, sharesAmount);
