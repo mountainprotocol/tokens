@@ -35,7 +35,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
 
     event AddressBlacklisted(address indexed addr);
     event AddressUnBlacklisted(address indexed addr);
-    event RewardMultiplierUpdated(uint256 indexed addr);
+    event RewardMultiplier(uint256 indexed addr);
 
     constructor(string memory name_, string memory symbol_, uint256 initialShares) {
         _name = name_;
@@ -272,7 +272,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
 
         _rewardMultiplier = _rewardMultiplier.add(rewardMultiplier_);
 
-        emit RewardMultiplierUpdated(_rewardMultiplier);
+        emit RewardMultiplier(_rewardMultiplier);
     }
 
     /**

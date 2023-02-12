@@ -32,56 +32,56 @@ describe("Token", () => {
   }
 
   describe("Deployment", () => {
-    it("should set correct token's name", async () => {
+    it("has a name", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       expect(await contract.name()).to.equal(name);
     });
 
-    it("should set correct token's symbol", async () => {
+    it("has a symbol", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       expect(await contract.symbol()).to.equal(symbol);
     });
 
-    it("should have 18 decimals", async () => {
+    it("has 18 decimals", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       expect(await contract.decimals()).to.be.equal(18);
     });
 
-    it("should set correct owner", async () => {
+    it("has the right owner", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       expect(await contract.owner()).to.equal(owner.address);
     });
 
-    it("should set correct initial total shares", async () => {
+    it("returns the total shares", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       expect(await contract.totalShares()).to.equal(totalShares);
     });
 
-    it("should set correct total supply", async () => {
+    it("returns the total supply", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       // Reward multiplier is not set so totalShares === totalSupply
       expect(await contract.totalSupply()).to.equal(totalShares);
     });
 
-    it("should assign the initial total shares to owner", async () => {
+    it("assigns the initial total shares to owner", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       expect(await contract.sharesOf(owner.address)).to.equal(totalShares);
     });
 
-    it("should return initial balance", async () => {
+    it("assigns the initial balance to the owner", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       expect( await contract.balanceOf(owner.address)).to.equal(totalShares);
     });
 
-    it("should grant admin role to owner", async () => {
+    it("grants admin role to owner", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       expect(
@@ -91,7 +91,7 @@ describe("Token", () => {
   });
 
   describe("Transfer", () => {
-    it("should transfer tokens from one address to another", async () => {
+    it("transfers tokens from one account to another", async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
       const amount = toBaseUnit(10);
 
@@ -106,7 +106,7 @@ describe("Token", () => {
       ).to.changeTokenBalances(contract, [acc1, acc2], [amount2.mul(-1), amount2]);
     });
 
-    it("should fail if transfer amount exceeds balance", async () => {
+    it("fails if transfer amount exceeds balance", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       const balance = await contract.balanceOf(owner.address);
@@ -116,7 +116,7 @@ describe("Token", () => {
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
 
-    it("should emit Transfer events", async () => {
+    it("emits Transfer events", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       const to = acc1.address;
@@ -127,7 +127,7 @@ describe("Token", () => {
         .withArgs(owner.address, to, amount);
     });
 
-    it("should fail if transfer to the zero address", async () => {
+    it("fails if transfer to the zero address", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       const amount = toBaseUnit(1);
@@ -137,7 +137,7 @@ describe("Token", () => {
       ).to.be.revertedWith("ERC20: transfer to the zero address");
     });
 
-    it("should support supply as argument but transfer shares", async () => {
+    it("takes supply amount as argument but transfers shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const amount = toBaseUnit(100);
       const rewardMultiplier = toBaseUnit(0.01);
@@ -158,7 +158,7 @@ describe("Token", () => {
   });
 
   describe("Access Control", () => {
-    it("should not mint without minter role", async () => {
+    it("does not mint without minter role", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
       await expect(
@@ -168,7 +168,7 @@ describe("Token", () => {
       );
     });
 
-    it("should mint with minter role", async () => {
+    it("mints with minter role", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.MINTER, acc1.address);
@@ -180,7 +180,7 @@ describe("Token", () => {
       );
     });
 
-    it("should not burn without burner role", async () => {
+    it("does not burn without burner role", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
       await expect(
@@ -190,7 +190,7 @@ describe("Token", () => {
       );
     });
 
-    it("should burn with burner role", async () => {
+    it("burns with burner role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
@@ -202,7 +202,7 @@ describe("Token", () => {
       );
     });
 
-    it("should not set the reward multiplier without oracle role", async () => {
+    it("does not set the reward multiplier without oracle role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await expect(
@@ -212,7 +212,7 @@ describe("Token", () => {
       );
     });
 
-    it("should set the reward multiplier with oracle role", async () => {
+    it("updates the reward multiplier with oracle role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
@@ -224,7 +224,7 @@ describe("Token", () => {
       );
     });
 
-    it("should not blacklist without blacklist role", async () => {
+    it("does not blacklist without blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await expect(
@@ -234,7 +234,7 @@ describe("Token", () => {
       );
     });
 
-    it("should blacklist with blacklist role", async () => {
+    it("blacklists with blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
@@ -246,7 +246,7 @@ describe("Token", () => {
       );
     });
 
-    it("should not unblacklist without blacklist role", async () => {
+    it("does not unblacklist without blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await expect(
@@ -268,7 +268,7 @@ describe("Token", () => {
       );
     });
 
-    it("should pause when admin", async () => {
+    it("pauses when admin", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       await expect(
@@ -278,7 +278,7 @@ describe("Token", () => {
       );
     });
 
-    it("should not pause without admin", async () => {
+    it("does not pause without admin", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
       await expect(
@@ -288,7 +288,7 @@ describe("Token", () => {
       );
     });
 
-    it("should unpause when admin", async () => {
+    it("unpauses when admin", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       await contract.pause();
@@ -300,7 +300,7 @@ describe("Token", () => {
       );
     });
 
-    it("should not unpause without admin", async () => {
+    it("does not unpause without admin", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.pause();
@@ -314,7 +314,7 @@ describe("Token", () => {
   });
 
   describe("Blacklist", () => {
-    it("should add address to the blacklist", async () => {
+    it("blacklists an account", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
@@ -325,7 +325,7 @@ describe("Token", () => {
       ).to.equal(true);
     });
 
-    it("should remove an address from the blacklist", async () => {
+    it("unblacklists an account", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
@@ -337,7 +337,7 @@ describe("Token", () => {
       ).to.equal(false);
     });
 
-    it("should not transfer when from address is blacklisted", async () => {
+    it("does not transfer when from address is blacklisted", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
@@ -348,7 +348,7 @@ describe("Token", () => {
       ).to.be.revertedWith('Address is blacklisted');
     });
 
-    it("should allow transfers to addresses blacklisted", async () => {
+    it("allows transfers to addresses blacklisted", async () => {
       // Each blacklist check is an SLOAD, which is gas intensive.
       // We only block sender not receiver, so we don't tax every user
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
@@ -361,7 +361,7 @@ describe("Token", () => {
       ).to.not.be.revertedWith('Address is blacklisted');
     });
 
-    it("should not add an address already blacklisted", async () => {
+    it("does not add an address already blacklisted", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
@@ -372,7 +372,7 @@ describe("Token", () => {
       ).to.be.revertedWith("Address already blacklisted");
     });
 
-    it("should not unblacklist an address not blacklisted", async () => {
+    it("does not unblacklist an address not blacklisted", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
@@ -384,7 +384,7 @@ describe("Token", () => {
   });
 
   describe("Pause", () => {
-    it("should allow minting when unpaused", async () => {
+    it("allows minting when unpaused", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
 
@@ -395,7 +395,7 @@ describe("Token", () => {
       ).to.not.be.revertedWith("Transfers not allowed while paused")
     });
 
-    it("should not allow minting when paused", async () => {
+    it("does not allow minting when paused", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
 
@@ -407,7 +407,7 @@ describe("Token", () => {
       ).to.be.revertedWith("Transfers not allowed while paused")
     });
 
-    it("should allow burning when unpaused", async () => {
+    it("allows burning when unpaused", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
 
@@ -418,7 +418,7 @@ describe("Token", () => {
       ).to.not.be.revertedWith("Transfers not allowed while paused")
     });
 
-    it("should not allow burning when paused", async () => {
+    it("does not allow burning when paused", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
 
@@ -430,7 +430,7 @@ describe("Token", () => {
       ).to.be.revertedWith("Transfers not allowed while paused")
     });
 
-    it("should allow transfers when unpaused", async () => {
+    it("allows transfers when unpaused", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
 
@@ -439,7 +439,7 @@ describe("Token", () => {
       ).to.not.be.revertedWith("Transfers not allowed while paused")
     });
 
-    it("should not allow transfers when paused", async () => {
+    it("does not allow transfers when paused", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
 
@@ -452,7 +452,7 @@ describe("Token", () => {
   });
 
   describe("Reward Multiplier", () => {
-    it("should initialize with 1", async () => {
+    it("initializes the reward multiplier with 100%", async () => {
       const { contract } = await loadFixture(deployTokenFixture);
 
       expect(
@@ -460,7 +460,7 @@ describe("Token", () => {
       ).to.equal(toBaseUnit(1));
     });
 
-    it("should sum the reward multiplier", async () => {
+    it("sums on top of the initial the reward multiplier", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
@@ -469,13 +469,27 @@ describe("Token", () => {
       const rewardMultiplier = await contract.rewardMultiplier();
 
       const expected = rewardMultiplier.add(interest);
+      await contract.setRewardMultiplier(interest)
 
-      await expect(
-        contract.setRewardMultiplier(interest)
-      ).to.emit(contract, "RewardMultiplierUpdated").withArgs(expected);
+      expect(
+        await contract.rewardMultiplier()
+      ).to.equal(expected);
     });
 
-    it("should not support reward multiplier below 0", async () => {
+    it("emits RewardMultiplier reward multiplier", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+
+      await contract.grantRole(roles.ORACLE, owner.address);
+
+      const rewardMultiplier = await contract.rewardMultiplier();
+      const value = 1;
+
+      await expect(
+        contract.setRewardMultiplier(value)
+      ).to.emit(contract, "RewardMultiplier").withArgs(rewardMultiplier.add(value));
+    });
+
+    it("does not support reward multiplier below 0", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
@@ -487,7 +501,7 @@ describe("Token", () => {
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
 
-    it("should not support a reward multiplier above 6bps", async () => {
+    it("does not support a reward multiplier above 6bps", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
@@ -499,7 +513,7 @@ describe("Token", () => {
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
 
-    it("should reflect the dynamic supply", async () => {
+    it("returns the dynamic supply", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const interest = toBaseUnit(0.01);
 
@@ -521,7 +535,7 @@ describe("Token", () => {
   });
 
   describe("Balance", () => {
-    it("should return the amount of dynamic supply and not the amount of shares", async () => {
+    it("returns the amount of dynamic supply and not the amount of shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
       const rewardMultiplier = toBaseUnit(0.01);
@@ -540,14 +554,14 @@ describe("Token", () => {
   });
 
   describe("Shares", () => {
-    it("should initialize with zero", async () => {
+    it("has zero balance and shares for new accounts", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
       expect (await contract.balanceOf(acc1.address)).to.equal(0);
       expect (await contract.sharesOf(acc1.address)).to.equal(0);
     });
 
-    it("should not change amount of shares when updating reward multiplier", async () => {
+    it("does not change amount of shares when updating reward multiplier", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       const sharesToMint = toBaseUnit(1);
@@ -562,7 +576,7 @@ describe("Token", () => {
       expect (await contract.sharesOf(acc1.address)).to.equal(sharesToMint);
     });
 
-    it("should return the amount of shares based on supply", async () => {
+    it("returns the amount of shares based on supply", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const amount = toBaseUnit(14);
       const rewardMultiplier = toBaseUnit(0.01);
@@ -579,7 +593,7 @@ describe("Token", () => {
       );
     });
 
-    it("should return the amount of supply based on shares", async () => {
+    it("returns the amount of supply based on shares", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const amount = toBaseUnit(14);
       const rewardMultiplier = toBaseUnit(0.01);
@@ -598,7 +612,7 @@ describe("Token", () => {
   });
 
   describe("Mint", () => {
-    it("should increment total shares when mint", async () => {
+    it("increments total shares when mint", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -613,7 +627,7 @@ describe("Token", () => {
       ).to.equal(totalShares.add(mintAmount));
     });
 
-    it("should increment total supply when mint", async () => {
+    it("increments total supply when mint", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -628,7 +642,7 @@ describe("Token", () => {
       ).to.equal(totalSupply.add(mintAmount));
     });
 
-    it("should emit transfer event", async () => {
+    it("emits transfer event", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -640,7 +654,7 @@ describe("Token", () => {
       ).to.emit(contract,"Transfer").withArgs(AddressZero, owner.address, mintAmount);
     });
 
-    it("should mint shares to correct address", async () => {
+    it("mints shares to correct address", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -654,7 +668,7 @@ describe("Token", () => {
       ).to.equal(mintAmount);
     });
 
-    it("should not allow minting to null adress", async () => {
+    it("does not allow minting to null adress", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -669,7 +683,7 @@ describe("Token", () => {
   });
 
   describe("Burn", () => {
-    it("should decrement account shares when burning", async () => {
+    it("decrements account shares when burning", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
@@ -684,13 +698,12 @@ describe("Token", () => {
       ).to.equal(accountShares.sub(burnAmount));
     });
 
-    it("should decrement total shares quantity when burning", async () => {
+    it("decrements total shares quantity when burning", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
 
       const totalShares = await contract.totalShares();
-      const accountShares = await contract.sharesOf(owner.address);
       const amount = 1;
 
       await contract.burn(owner.address, amount)
@@ -700,7 +713,7 @@ describe("Token", () => {
       ).to.equal(totalShares.sub(amount));
     });
 
-    it("should not allow burning from null address", async () => {
+    it("does not allow burning from null address", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
@@ -710,7 +723,7 @@ describe("Token", () => {
       ).to.be.revertedWith("ERC20: burn from the zero address");
     });
 
-    it("should not allow burning when amount exceeds balance", async () => {
+    it("does not allow burning when amount exceeds balance", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
@@ -721,7 +734,7 @@ describe("Token", () => {
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
 
-    it("should emit Transfer events", async () => {
+    it("emits Transfer events", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const amount = 1;
 
@@ -735,7 +748,7 @@ describe("Token", () => {
   });
 
   describe("Approve", () => {
-    it("should revert when spender is the zero address", async () => {
+    it("fails when spender is the zero address", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await expect (
@@ -743,7 +756,7 @@ describe("Token", () => {
       ).to.revertedWith("ERC20: approve to the zero address");
     });
 
-    it("should emit an approval event", async () => {
+    it("emits an approval event", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const amount = 1;
 
@@ -752,7 +765,7 @@ describe("Token", () => {
       ).to.emit(contract, "Approval").withArgs(owner.address, acc1.address, amount);
     });
 
-    it("should approve the request amount", async () => {
+    it("approves the request amount", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const amount = 1;
 
@@ -763,7 +776,7 @@ describe("Token", () => {
       ).to.equal(amount);
     });
 
-    it("should approve the request amount and replace the previous one", async () => {
+    it("approves the request amount and replace the previous one", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const amount = 1;
 
