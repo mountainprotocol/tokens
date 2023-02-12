@@ -520,7 +520,7 @@ describe("Token", () => {
     });
   });
 
-  describe("balance", () => {
+  describe("Balance", () => {
     it("should return the amount of dynamic supply and not the amount of shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
@@ -539,7 +539,7 @@ describe("Token", () => {
     });
   });
 
-  describe("shares", () => {
+  describe("Shares", () => {
     it("should initialize with zero", async () => {
       const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
@@ -597,7 +597,7 @@ describe("Token", () => {
     });
   });
 
-  describe("mint", () => {
+  describe("Mint", () => {
     it("should increment total shares when mint", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
@@ -668,14 +668,14 @@ describe("Token", () => {
     });
   });
 
-  describe("burn", () => {
+  describe("Burn", () => {
     it("should decrement account shares when burning", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
 
       const accountShares = await contract.sharesOf(owner.address);
-      const burnAmount = toBaseUnit(1);
+      const burnAmount = 1;
 
       await contract.burn(owner.address, burnAmount)
 
@@ -691,7 +691,7 @@ describe("Token", () => {
 
       const totalShares = await contract.totalShares();
       const accountShares = await contract.sharesOf(owner.address);
-      const amount = toBaseUnit(1);
+      const amount = 1;
 
       await contract.burn(owner.address, amount)
 
@@ -704,11 +704,9 @@ describe("Token", () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
-      const amount = toBaseUnit(1);
-
 
       await expect(
-        contract.burn(AddressZero, amount)
+        contract.burn(AddressZero, 1)
       ).to.be.revertedWith("ERC20: burn from the zero address");
     });
 
@@ -723,10 +721,58 @@ describe("Token", () => {
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
 
-    describe("Approve", () => {
-      it("should revert when spender is the zero address", async () => {
-        const { contract, owner } = await loadFixture(deployTokenFixture);
-      });
+    it("should emit Transfer events", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const amount = 1;
+
+      await contract.grantRole(roles.BURNER, owner.address);
+      await contract.burn(owner.address, amount)
+
+      await expect(
+        contract.burn(owner.address, amount)
+      ).to.emit(contract, "Transfer").withArgs(owner.address, AddressZero, amount);
+    });
+  });
+
+  describe("Approve", () => {
+    it("should revert when spender is the zero address", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+
+      await expect (
+        contract.approve(AddressZero, 1)
+      ).to.revertedWith("ERC20: approve to the zero address");
+    });
+
+    it("should emit an approval event", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const amount = 1;
+
+      await expect (
+        contract.approve(acc1.address, amount)
+      ).to.emit(contract, "Approval").withArgs(owner.address, acc1.address, amount);
+    });
+
+    it("should approve the request amount", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const amount = 1;
+
+      await contract.approve(acc1.address, amount);
+
+      expect (
+        await contract.allowance(owner.address, acc1.address)
+      ).to.equal(amount);
+    });
+
+    it("should approve the request amount and replace the previous one", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const amount = 1;
+
+      await contract.approve(acc1.address, amount + 1);
+      await contract.approve(acc1.address, amount);
+
+      expect (
+        await contract.allowance(owner.address, acc1.address)
+      ).to.equal(amount);
     });
   });
 
