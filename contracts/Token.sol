@@ -130,13 +130,13 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
             // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
             _shares[to] = _shares[to].add(sharesAmount);
         }
-        emit Transfer(address(0), to, sharesAmount);
 
         _afterTokenTransfer(address(0), to, sharesAmount);
     }
 
     /**
-     * @dev Creates `sharesAmount` and assigns them to `to` account, increasing the total amount of shares not the total supply (directly).
+     * @dev Creates `sharesAmount` and assigns them to `to` account,
+     * increasing the total amount of shares not the total supply (directly).
      *
      * Emits a {Transfer} event with `from` set to the zero address.
      *
@@ -165,8 +165,6 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
             _shares[to] = _shares[to].add(sharesAmount);
         }
 
-        emit Transfer(from, to, sharesAmount);
-
         _afterTokenTransfer(from, to, sharesAmount);
     }
 
@@ -183,13 +181,12 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
             _totalShares = _totalShares.sub(sharesAmount);
         }
 
-        emit Transfer(account, address(0), sharesAmount);
-
         _afterTokenTransfer(account, address(0), sharesAmount);
     }
 
     /**
-     * @notice Destroys `sharesAmount` shares from `from` account's holdings, decreasing the total amount of shares not the total supply (directly).
+     * @notice Destroys `sharesAmount` shares from `from` account's holdings,
+     * decreasing the total amount of shares not the total supply (directly).
      * @dev This doesn't decrease the token total supply.
      *
      * Requirements:
@@ -253,7 +250,9 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         address from,
         address to,
         uint256 amount
-    ) private view {}
+    ) private {
+        emit Transfer(from, to, amount);
+    }
 
     function pause() public onlyOwner {
         super._pause();
