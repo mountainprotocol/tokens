@@ -4,7 +4,6 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 const { AddressZero } = ethers.constants
 const toBaseUnit = (value: number) => ethers.utils.parseUnits(value.toString());
-const getRole = (role: string) => ethers.utils.keccak256(ethers.utils.toUtf8Bytes(role));
 
 const roles = {
   MINTER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE')),
@@ -786,6 +785,41 @@ describe("Token", () => {
       expect (
         await contract.allowance(owner.address, acc1.address)
       ).to.equal(amount);
+    });
+  });
+
+  describe("Decrease Allowance", () => {
+    it("fails if decreased allowance is below zero", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+
+      await expect(
+        contract.decreaseAllowance(acc1.address, 1)
+      ).to.be.revertedWith("ERC20: decreased allowance below zero");
+    });
+
+    it("decreases the allowance", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const amount = 2;
+      const subtractedValue = 1;
+
+      await contract.approve(acc1.address, amount);
+      await contract.decreaseAllowance(acc1.address, subtractedValue);
+
+      expect(
+        await contract.allowance(owner.address, acc1.address)
+      ).to.be.equal(amount - subtractedValue);
+    });
+
+    it("emits an approval event", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const amount = 2;
+      const subtractedValue = 1;
+
+      await contract.approve(acc1.address, amount);
+
+      await expect(
+        await contract.decreaseAllowance(acc1.address, subtractedValue)
+      ).to.emit(contract, "Approval").withArgs(owner.address, acc1.address, amount - subtractedValue);
     });
   });
 
