@@ -64,8 +64,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
      * be displayed to a user as `5.05` (`505 / 10 ** 2`).
      *
      * Tokens usually opt for a value of 18, imitating the relationship between
-     * Ether and Wei. This is the default value returned by this function, unless
-     * it's overridden.
+     * Ether and Wei. This is the default value returned by ERC20 tokens.
      *
      * NOTE: This information is only used for _display_ purposes: it in
      * no way affects any of the arithmetic of the contract, including
@@ -231,11 +230,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         return _blacklist[account];
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) private view {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) private view {
         // Each blacklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
         require(!isBlacklisted(from), "Address is blacklisted");
@@ -245,11 +240,7 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         require(!paused(), "Transfers not allowed while paused");
     }
 
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) private {
+    function _afterTokenTransfer(address from, address to, uint256 amount) private {
         emit Transfer(from, to, amount);
     }
 
@@ -342,6 +333,35 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
     }
 
     /**
+     * @dev See {IERC20-transferFrom}.
+     *
+     * Emits an {Approval} event indicating the updated allowance. This is not
+     * required by the EIP. See the note at the beginning of {ERC20}.
+     *
+     * Emits an {Approval} event indicating the updated allowance. This is not
+     * required by the EIP. This allows applications to reconstruct the allowance
+     * for all accounts just by listening to said events.
+     *
+     * NOTE: Does not update the allowance if the current allowance
+     * is the maximum `uint256`.
+     *
+     * Requirements:
+     *
+     * - `from` and `to` cannot be the zero address.
+     * - `from` must have a balance of at least `amount`.
+     * - the caller must have allowance for ``from``'s tokens of at least
+     * `amount`.
+     */
+    function transferFrom(address from, address to, uint256 amount) public returns (bool) {
+        address spender = _msgSender();
+        uint256 sharesAmount = getSharesBySupply(amount);
+        _spendAllowance(from, spender, sharesAmount);
+        _transferShares(from, to, sharesAmount);
+
+        return true;
+    }
+
+    /**
      * @dev Atomically decreases the allowance granted to `spender` by the caller.
      *
      * This is an alternative to {approve} that can be used as a mitigation for
@@ -362,31 +382,6 @@ contract Token is IERC20, Ownable, AccessControl, Pausable {
         unchecked {
             _approve(owner, spender, currentAllowance - subtractedValue);
         }
-
-        return true;
-    }
-
-    /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * Emits an {Approval} event indicating the updated allowance. This is not
-     * required by the EIP. See the note at the beginning of {ERC20}.
-     *
-     * NOTE: Does not update the allowance if the current allowance
-     * is the maximum `uint256`.
-     *
-     * Requirements:
-     *
-     * - `from` and `to` cannot be the zero address.
-     * - `from` must have a balance of at least `amount`.
-     * - the caller must have allowance for ``from``'s tokens of at least
-     * `amount`.
-     */
-    function transferFrom(address from, address to, uint256 amount) public returns (bool) {
-        address spender = _msgSender();
-        uint256 sharesAmount = getSharesBySupply(amount);
-        _spendAllowance(from, spender, sharesAmount);
-        _transferShares(from, to, sharesAmount);
 
         return true;
     }

@@ -115,7 +115,7 @@ describe("Token", () => {
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
 
-    it("emits Transfer events", async () => {
+    it("emits a transfer events", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       const to = acc1.address;
@@ -475,7 +475,7 @@ describe("Token", () => {
       ).to.equal(expected);
     });
 
-    it("emits RewardMultiplier reward multiplier", async () => {
+    it("emits a reward multiplier reward multiplier", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
@@ -641,7 +641,7 @@ describe("Token", () => {
       ).to.equal(totalSupply.add(mintAmount));
     });
 
-    it("emits transfer event", async () => {
+    it("emits a transfer event", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -733,7 +733,7 @@ describe("Token", () => {
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
 
-    it("emits Transfer events", async () => {
+    it("emits a transfer events", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const amount = 1;
 
@@ -823,146 +823,98 @@ describe("Token", () => {
     });
   });
 
-  // describe('Transfer From', () => {
-  //   // const spender = recipient;
+  describe("Transfer From", () => {
+    it("does not update allowance amount in case of infinite allowance", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const from = owner.address;
+      const to = acc1.address;
+      const { MaxUint256 } = ethers.constants;
 
-  //   describe('when the token owner is not the zero address', function () {
-  //     // const tokenOwner = initialHolder;
+      await contract.approve(to, MaxUint256);
 
-  //     describe('when the recipient is not the zero address', function () {
-  //       // const to = anotherAccount;
 
-  //       describe('when the spender has enough allowance', function () {
-  //         beforeEach(async function () {
-  //           await this.token.approve(spender, initialSupply, { from: initialHolder });
-  //         });
+      await expect(
+        contract.connect(acc1).transferFrom(from, to, 1)
+      ).to.not.emit(contract, "Approval");
 
-  //         describe('when the token owner has enough balance', function () {
-  //           const amount = initialSupply;
+      expect(await contract.allowance(from, to)).to.be.equal(MaxUint256);
+    });
 
-  //           it('transfers the requested amount', async function () {
-  //             await this.token.transferFrom(tokenOwner, to, amount, { from: spender });
+    it("transfers the requested amount when has enough allowance", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const from = owner.address;
+      const to = acc1.address;
+      const amount = 1;
 
-  //             expect(await this.token.balanceOf(tokenOwner)).to.be.bignumber.equal('0');
+      await contract.approve(to, amount);
 
-  //             expect(await this.token.balanceOf(to)).to.be.bignumber.equal(amount);
-  //           });
+      await expect(
+        contract.connect(acc1).transferFrom(from, to, amount)
+      ).to.changeTokenBalances(contract, [from, to], [-amount, amount]);
+    });
 
-  //           it('decreases the spender allowance', async function () {
-  //             await this.token.transferFrom(tokenOwner, to, amount, { from: spender });
+    it("decreses the spender allowance", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const from = owner.address;
+      const to = acc1.address;
 
-  //             expect(await this.token.allowance(tokenOwner, spender)).to.be.bignumber.equal('0');
-  //           });
+      await contract.approve(to, 2);
+      await contract.connect(acc1).transferFrom(from, to, 1);
 
-  //           it('emits a transfer event', async function () {
-  //             expectEvent(await this.token.transferFrom(tokenOwner, to, amount, { from: spender }), 'Transfer', {
-  //               from: tokenOwner,
-  //               to: to,
-  //               value: amount,
-  //             });
-  //           });
+      expect(await contract.allowance(from, to)).to.be.equal(1);
+    });
 
-  //           it('emits an approval event', async function () {
-  //             expectEvent(await this.token.transferFrom(tokenOwner, to, amount, { from: spender }), 'Approval', {
-  //               owner: tokenOwner,
-  //               spender: spender,
-  //               value: await this.token.allowance(tokenOwner, spender),
-  //             });
-  //           });
-  //         });
+    it("reverts when insufficient allowance", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const from = owner.address;
+      const to = acc1.address;
+      const amount = 1;
 
-  //         describe('when the token owner does not have enough balance', function () {
-  //           const amount = initialSupply;
+      await contract.approve(to, amount);
 
-  //           beforeEach('reducing balance', async function () {
-  //             await this.token.transfer(to, 1, { from: tokenOwner });
-  //           });
+      await expect(
+        contract.connect(acc1).transferFrom(from, to, amount + 1)
+      ).to.be.revertedWith("ERC20: insufficient allowance");
+    });
 
-  //           it('reverts', async function () {
-  //             await expectRevert(
-  //               this.token.transferFrom(tokenOwner, to, amount, { from: spender }),
-  //               `${errorPrefix}: transfer amount exceeds balance`,
-  //             );
-  //           });
-  //         });
-  //       });
+    it("emits a transfer event", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const from = owner.address;
+      const to = acc1.address;
+      const amount = 1;
 
-  //       describe('when the spender does not have enough allowance', function () {
-  //         const allowance = initialSupply.subn(1);
+      await contract.approve(to, amount);
 
-  //         beforeEach(async function () {
-  //           await this.token.approve(spender, allowance, { from: tokenOwner });
-  //         });
+      await expect(
+        contract.connect(acc1).transferFrom(from, to, amount)
+      ).to.emit(contract, "Transfer").withArgs(from, to, amount);
+    });
 
-  //         describe('when the token owner has enough balance', function () {
-  //           const amount = initialSupply;
+    it("emits an approval event", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const from = owner.address;
+      const to = acc1.address;
+      const amount = 1;
 
-  //           it('reverts', async function () {
-  //             await expectRevert(
-  //               this.token.transferFrom(tokenOwner, to, amount, { from: spender }),
-  //               `${errorPrefix}: insufficient allowance`,
-  //             );
-  //           });
-  //         });
+      await contract.approve(to, amount);
 
-  //         describe('when the token owner does not have enough balance', function () {
-  //           const amount = allowance;
+      await expect(
+        contract.connect(acc1).transferFrom(from, to, amount)
+      ).to.emit(contract, "Approval").withArgs(from, to, amount - 1);
+    });
 
-  //           beforeEach('reducing balance', async function () {
-  //             await this.token.transfer(to, 2, { from: tokenOwner });
-  //           });
+    it("reverts when owner does not have enough blanace", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const from = owner.address;
+      const to = acc1.address;
+      const amount = await contract.balanceOf(from);
 
-  //           it('reverts', async function () {
-  //             await expectRevert(
-  //               this.token.transferFrom(tokenOwner, to, amount, { from: spender }),
-  //               `${errorPrefix}: transfer amount exceeds balance`,
-  //             );
-  //           });
-  //         });
-  //       });
+      await contract.approve(to, amount);
+      await contract.transfer(to, 1);
 
-  //       describe('when the spender has unlimited allowance', function () {
-  //         beforeEach(async function () {
-  //           await this.token.approve(spender, MAX_UINT256, { from: initialHolder });
-  //         });
-
-  //         it('does not decrease the spender allowance', async function () {
-  //           await this.token.transferFrom(tokenOwner, to, 1, { from: spender });
-
-  //           expect(await this.token.allowance(tokenOwner, spender)).to.be.bignumber.equal(MAX_UINT256);
-  //         });
-
-  //         it('does not emit an approval event', async function () {
-  //           expectEvent.notEmitted(await this.token.transferFrom(tokenOwner, to, 1, { from: spender }), 'Approval');
-  //         });
-  //       });
-  //     });
-
-  //     describe('when the recipient is the zero address', function () {
-  //       const amount = initialSupply;
-  //       const to = ZERO_ADDRESS;
-
-  //       beforeEach(async function () {
-  //         await this.token.approve(spender, amount, { from: tokenOwner });
-  //       });
-
-  //       it('reverts', async function () {
-  //         await expectRevert(
-  //           this.token.transferFrom(tokenOwner, to, amount, { from: spender }),
-  //           `${errorPrefix}: transfer to the zero address`,
-  //         );
-  //       });
-  //     });
-  //   });
-
-  //   describe('when the token owner is the zero address', function () {
-  //     const amount = 0;
-  //     const tokenOwner = ZERO_ADDRESS;
-  //     const to = recipient;
-
-  //     it('reverts', async function () {
-  //       await expectRevert(this.token.transferFrom(tokenOwner, to, amount, { from: spender }), 'from the zero address');
-  //     });
-  //   });
-  // });
+      await expect(
+        contract.connect(acc1).transferFrom(from, to, amount)
+      ).to.revertedWith("ERC20: transfer amount exceeds balance");
+    });
+  });
 });
