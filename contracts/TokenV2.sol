@@ -31,6 +31,22 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     bytes32 public constant BLACKLIST_ROLE = keccak256("BLACKLIST_ROLE");
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
+    error MintToZeroAddress();
+    error TransferFromZeroAddress();
+    error TransferToZeroAddress();
+    error TransferExceedsBalance();
+    error BurnFromZeroAddress();
+    error BurnExceedsBalance();
+    error AddressAlreadyBlacklisted();
+    error AddressNotBlacklisted();
+    error AddressIsBlacklisted();
+    error TransfersNotAllowedWhilePaused();
+    error InvalidRewardMultiplier();
+    error ApproveFromZeroAddress();
+    error ApproveToZeroAddress();
+    error InsufficientAllowance();
+    error AllowanceBelowZero();
+
     event AddressBlacklisted(address indexed addr);
     event AddressUnBlacklisted(address indexed addr);
     event RewardMultiplier(uint256 indexed addr);
@@ -128,7 +144,7 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     }
 
     function _mint(address to, uint256 sharesAmount) private {
-        require(to != address(0), "ERC20: mint to the zero address");
+        if (to == address(0)) revert MintToZeroAddress();
 
         _beforeTokenTransfer(address(0), to, sharesAmount);
 
@@ -159,13 +175,13 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     }
 
     function _transferShares(address from, address to, uint256 sharesAmount) private {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
+        if (from == address(0)) revert TransferFromZeroAddress();
+        if (to == address(0)) revert TransferToZeroAddress();
 
         _beforeTokenTransfer(from, to, sharesAmount);
 
         uint256 fromShares = _shares[from];
-        require(fromShares >= sharesAmount, "ERC20: transfer amount exceeds balance");
+        if (fromShares < sharesAmount) revert TransferExceedsBalance();
         unchecked {
             _shares[from] = fromShares.sub(sharesAmount);
             // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
@@ -177,12 +193,12 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     }
 
     function _burn(address account, uint256 sharesAmount) private {
-        require(account != address(0), "ERC20: burn from the zero address");
+        if (account == address(0)) revert BurnFromZeroAddress();
 
         _beforeTokenTransfer(account, address(0), sharesAmount);
 
         uint256 accountShares = sharesOf(account);
-        require(accountShares >= sharesAmount, "ERC20: burn amount exceeds balance");
+        if (accountShares < sharesAmount) revert BurnExceedsBalance();
         unchecked {
             _shares[account] = accountShares.sub(sharesAmount);
             // Overflow not possible: amount <= accountBalance <= totalSupply.
@@ -225,13 +241,13 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     }
 
     function blacklist(address account) public onlyRole(BLACKLIST_ROLE) {
-        require(!_blacklist[account], "Address already blacklisted");
+        if (_blacklist[account]) revert AddressAlreadyBlacklisted();
         _blacklist[account] = true;
         emit AddressBlacklisted(account);
     }
 
     function unblacklist(address account) public onlyRole(BLACKLIST_ROLE) {
-        require(_blacklist[account], "Address is not blacklisted");
+        if (!_blacklist[account]) revert AddressNotBlacklisted();
         _blacklist[account] = false;
         emit AddressUnBlacklisted(account);
     }
@@ -243,11 +259,11 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     function _beforeTokenTransfer(address from, address to, uint256 amount) private view {
         // Each blacklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
-        require(!isBlacklisted(from), "Address is blacklisted");
+        if (isBlacklisted(from)) revert AddressIsBlacklisted();
         // Useful for scenarios such as preventing trades until the end of an evaluation
         // period, or having an emergency switch for freezing all token transfers in the
         // event of a large bug.
-        require(!paused(), "Transfers not allowed while paused");
+        if (paused()) revert TransfersNotAllowedWhilePaused();
     }
 
     function _afterTokenTransfer(address from, address to, uint256 amount) private {
@@ -267,8 +283,8 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     }
 
     function setRewardMultiplier(uint256 rewardMultiplier_) public onlyRole(ORACLE_ROLE) {
-        require(rewardMultiplier_ > 0, "Invalid RewardMultiplier");
-        require(rewardMultiplier_ < 50000000000000000, "Invalid RewardMultiplier"); // 5bps
+        if (rewardMultiplier_ < 0) revert InvalidRewardMultiplier();
+        if (rewardMultiplier_ > 50000000000000000) revert InvalidRewardMultiplier();
 
         _rewardMultiplier = _rewardMultiplier.add(rewardMultiplier_);
 
@@ -293,8 +309,8 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
         address spender,
         uint256 amount
     ) private {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+        if (owner == address(0)) revert ApproveFromZeroAddress();
+        if (spender == address(0)) revert ApproveToZeroAddress();
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
@@ -328,14 +344,14 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
      * @dev Updates `owner` s allowance for `spender` based on spent `amount`.
      *
      * Does not update the allowance amount in case of infinite allowance.
-     * Revert if not enough allowance is available.
+     * Revert if not enough allowance is available.();
      *
      * Might emit an {Approval} event.
      */
     function _spendAllowance(address owner, address spender, uint256 amount) private {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC20: insufficient allowance");
+            if (currentAllowance < amount) revert InsufficientAllowance();
             unchecked {
                 _approve(owner, spender, currentAllowance - amount);
             }
@@ -388,7 +404,7 @@ contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
         address owner = _msgSender();
         uint256 currentAllowance = allowance(owner, spender);
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        if (currentAllowance < subtractedValue) revert AllowanceBelowZero();
         unchecked {
             _approve(owner, spender, currentAllowance - subtractedValue);
         }
