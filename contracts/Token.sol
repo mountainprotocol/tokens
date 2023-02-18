@@ -25,7 +25,6 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
     mapping(address => mapping(address => uint256)) private _allowances;
-    uint256 private _test;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -395,9 +394,5 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
         }
 
         return true;
-    }
-
-    function test() public view returns (uint256) {
-        return _test;
     }
 }
