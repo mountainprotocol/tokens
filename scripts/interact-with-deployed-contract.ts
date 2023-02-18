@@ -5,8 +5,8 @@ dotenv.config();
 
 
 // CHANGE THIS IF NEEDED
-const contractName = 'Token';
-const contractAddress = '0xb68f51ae286aeb9a05d38921cc7a2c008f5e3257';
+const contractName = 'TokenV2';
+const contractAddress = '0x6816EEe1d41B103988799F2e7ABA0521E56C2679';
 
 // Create a node provider
 const network = 'goerli';

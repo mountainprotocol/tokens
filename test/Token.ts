@@ -24,7 +24,7 @@ describe("Token", () => {
     // Contracts are deployed using the first signer/account by default
     const [owner, acc1, acc2] = await ethers.getSigners();
 
-    const Token = await ethers.getContractFactory("Token");
+    const Token = await ethers.getContractFactory("TokenV3");
     const contract = await upgrades.deployProxy(
       Token,
       [name, symbol, totalShares],

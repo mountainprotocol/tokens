@@ -25,16 +25,16 @@ const main = async () => {
 }
 
 const upgrade = async () => {
-  const PROXY_ADDRESS = '0xaEb9c93480202c03721bEDE5b04AF4BcDCE2FA3b';
-  const TokenV2 = await ethers.getContractFactory("TokenV2");
-  console.log('Upgrading contract...', PROXY_ADDRESS);
-  await upgrades.upgradeProxy(PROXY_ADDRESS, TokenV2);
-  console.log('Contract upgraded');
+  const PROXY_ADDRESS = '0x6816EEe1d41B103988799F2e7ABA0521E56C2679';
+  const newContract = await ethers.getContractFactory("TokenV3");
+  console.log("Upgrading contract... %s", PROXY_ADDRESS);
+  await upgrades.upgradeProxy(PROXY_ADDRESS, newContract);
+  console.log("Contract upgraded");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main()
+upgrade()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);
