@@ -384,5 +384,8 @@ typechain-types
 cache
 artifacts
 
+# OpenZeppelin
+.openzeppelin
+
 # Mac
 .DS_Store

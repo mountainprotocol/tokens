@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 const { AddressZero } = ethers.constants
@@ -25,7 +25,11 @@ describe("Token", () => {
     const [owner, acc1, acc2] = await ethers.getSigners();
 
     const Token = await ethers.getContractFactory("Token");
-    const contract = await Token.deploy(name, symbol, totalShares);
+    const contract = await upgrades.deployProxy(
+      Token,
+      [name, symbol, totalShares],
+      { initializer: 'initialize' }
+    );
 
     return { contract, owner, acc1, acc2 };
   }

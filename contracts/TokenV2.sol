@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -13,7 +13,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 // TODO: Lock functions gracetime period
 
 // Author: @mattiascaricato
-contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
+contract TokenV2 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using SafeMathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -25,7 +25,6 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
     mapping(address => mapping(address => uint256)) private _allowances;
-    uint256 private _test;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -395,9 +394,5 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
         }
 
         return true;
-    }
-
-    function test() public view returns (uint256) {
-        return _test;
     }
 }
