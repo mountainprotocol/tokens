@@ -24,7 +24,7 @@ describe("Token", () => {
     // Contracts are deployed using the first signer/account by default
     const [owner, acc1, acc2] = await ethers.getSigners();
 
-    const Token = await ethers.getContractFactory("TokenV3");
+    const Token = await ethers.getContractFactory("TokenV4");
     const contract = await upgrades.deployProxy(
       Token,
       [name, symbol, totalShares],
@@ -143,7 +143,7 @@ describe("Token", () => {
     it("takes supply amount as argument but transfers shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const amount = toBaseUnit(100);
-      const rewardMultiplier = toBaseUnit(0.01);
+      const rewardMultiplier = toBaseUnit(0.0001); // 1bps
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
 
@@ -468,10 +468,10 @@ describe("Token", () => {
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const interest = toBaseUnit(0.000547945205479452); // Daily 20% APR
+      const interest = toBaseUnit(0.0001);
       const rewardMultiplier = await contract.rewardMultiplier();
-
       const expected = rewardMultiplier.add(interest);
+
       await contract.setRewardMultiplier(interest)
 
       expect(
@@ -504,7 +504,7 @@ describe("Token", () => {
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
 
-    it("does not support a reward multiplier above 6bps", async () => {
+    it("does not support a reward multiplier above 5bps", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
@@ -518,7 +518,7 @@ describe("Token", () => {
 
     it("returns the dynamic supply", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
-      const interest = toBaseUnit(0.01);
+      const interest = toBaseUnit(0.0001);
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
@@ -535,13 +535,36 @@ describe("Token", () => {
         await contract.totalSupply()
       ).to.equal(expected);
     });
+
+    it("mints by supply not by share", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const interest = toBaseUnit(0.0004); // 4bps
+
+      await contract.grantRole(roles.ORACLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
+
+      const amount = toBaseUnit(1000); // 1k USDM
+      const totalInterest = interest.add(toBaseUnit(1)); // 100.04%
+
+      await contract.mint(acc1.address, amount); // Mint 1k
+      await contract.setRewardMultiplier(interest);
+      await contract.mint(acc1.address, amount);// Mint 1k
+
+      const expected = amount.mul(totalInterest).div(toBaseUnit(1)).add(amount);
+
+      expect(
+        await contract.balanceOf(acc1.address)
+      ).to.equal(
+        expected
+      );
+    });
   });
 
   describe("Balance", () => {
     it("returns the amount of dynamic supply and not the amount of shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
       const tokensAmount = toBaseUnit(10);
-      const rewardMultiplier = toBaseUnit(0.01);
+      const rewardMultiplier = toBaseUnit(0.0001);
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -573,7 +596,7 @@ describe("Token", () => {
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.mint(acc1.address, sharesToMint);
 
-      await contract.setRewardMultiplier(toBaseUnit(0.01));
+      await contract.setRewardMultiplier(toBaseUnit(0.0001));
 
 
       expect (await contract.sharesOf(acc1.address)).to.equal(sharesToMint);
@@ -582,7 +605,7 @@ describe("Token", () => {
     it("returns the amount of shares based on supply", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const amount = toBaseUnit(14);
-      const rewardMultiplier = toBaseUnit(0.01);
+      const rewardMultiplier = toBaseUnit(0.0001);
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
       await contract.grantRole(roles.ORACLE, owner.address);
@@ -599,7 +622,7 @@ describe("Token", () => {
     it("returns the amount of supply based on shares", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const amount = toBaseUnit(14);
-      const rewardMultiplier = toBaseUnit(0.01);
+      const rewardMultiplier = toBaseUnit(0.0001);
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
       await contract.grantRole(roles.ORACLE, owner.address);
