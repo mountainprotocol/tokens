@@ -2,25 +2,27 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-// TODO: Permit
-// TODO: Check safe methods
+// TODO: Implement Permit
+// TODO: SafeERC20Upgradeable needed?
 // TODO: Lock functions gracetime period
 
 // Author: @mattiascaricato
-contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
+contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
     using SafeMathUpgradeable for uint256;
-    using SafeERC20Upgradeable for IERC20Upgradeable;
+    // using SafeERC20Upgradeable for IERC20Upgradeable;
 
     string private _name;
     string private _symbol;
     uint256 private _rewardMultiplier;
     uint256 private _totalShares;
+    uint256 private constant BASE = 1e18;
 
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
@@ -30,6 +32,7 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant BLACKLIST_ROLE = keccak256("BLACKLIST_ROLE");
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     event AddressBlacklisted(address indexed addr);
     event AddressUnBlacklisted(address indexed addr);
@@ -38,11 +41,12 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     function initialize(string memory name_, string memory symbol_, uint256 initialShares) public initializer {
         _name = name_;
         _symbol = symbol_;
-        _rewardMultiplier = 1e18;
+        _rewardMultiplier = BASE;
 
         __Ownable_init();
         __AccessControl_init();
         __Pausable_init();
+        __UUPSUpgradeable_init();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _mint(_msgSender(), initialShares);
@@ -52,6 +56,8 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     constructor() {
         _disableInitializers();
     }
+
+    function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
     /**
      * @dev Returns the name of the token.
@@ -85,18 +91,17 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     }
 
      /**
-     * @return the amount of shares that corresponds to `supplyAmount` protocol-controlled tokens.
+     * @return the shares that corresponds to `amount` tokens.
      */
-    function getSharesBySupply(uint256 supplyAmount) public view returns (uint256) {
-        // We use fixed-point arithmetic to avoid precision issues
-        return supplyAmount.mul(1e18).div(rewardMultiplier());
+    function amountToShares(uint256 amount) public view returns (uint256) {
+        return amount.mul(BASE).div(rewardMultiplier());
     }
 
     /**
-     * @return the amount of supply that corresponds to `sharesAmount` protocol-controlled shares.
+     * @return the amount of supply that corresponds to `shares`.
      */
-    function getSupplyByShares(uint256 sharesAmount) public view returns (uint256) {
-        return sharesAmount.mul(rewardMultiplier()).div(1e18);
+    function sharesToAmount(uint256 shares) public view returns (uint256) {
+        return shares.mul(rewardMultiplier()).div(BASE);
     }
 
     function totalShares() public view returns (uint256) {
@@ -110,7 +115,7 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
      * is pegged to the total amount of shares controlled by the protocol.
      */
     function totalSupply() public view returns (uint256) {
-        return getSupplyByShares(_totalShares);
+        return sharesToAmount(_totalShares);
     }
 
     function sharesOf(address account) public view returns (uint256) {
@@ -124,26 +129,26 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
      * total reserves controlled by the protocol. See `sharesOf`.
      */
     function balanceOf(address account) public view returns (uint256) {
-        return getSupplyByShares(sharesOf(account));
+        return sharesToAmount(sharesOf(account));
     }
 
-    function _mint(address to, uint256 sharesAmount) private {
+    function _mint(address to, uint256 shares) private {
         require(to != address(0), "ERC20: mint to the zero address");
 
-        _beforeTokenTransfer(address(0), to, sharesAmount);
+        _beforeTokenTransfer(address(0), to, shares);
 
-        _totalShares = _totalShares.add(sharesAmount);
+        _totalShares = _totalShares.add(shares);
 
         unchecked {
             // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
-            _shares[to] = _shares[to].add(sharesAmount);
+            _shares[to] = _shares[to].add(shares);
         }
 
-        _afterTokenTransfer(address(0), to, sharesAmount);
+        _afterTokenTransfer(address(0), to, shares);
     }
 
     /**
-     * @dev Creates `sharesAmount` and assigns them to `to` account,
+     * @dev Creates `shares` and assigns them to `to` account,
      * increasing the total amount of shares not the total supply (directly).
      *
      * Emits a {Transfer} event with `from` set to the zero address.
@@ -154,58 +159,58 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
      * - the contract must not be paused.
      */
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
-        uint256 sharesAmount = getSharesBySupply(amount);
-        _mint(to, sharesAmount);
+        uint256 shares = amountToShares(amount);
+        _mint(to, shares);
     }
 
-    function _transferShares(address from, address to, uint256 sharesAmount) private {
+    function _transferShares(address from, address to, uint256 shares) private {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
 
-        _beforeTokenTransfer(from, to, sharesAmount);
+        _beforeTokenTransfer(from, to, shares);
 
         uint256 fromShares = _shares[from];
-        require(fromShares >= sharesAmount, "ERC20: transfer amount exceeds balance");
+        require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
         unchecked {
-            _shares[from] = fromShares.sub(sharesAmount);
+            _shares[from] = fromShares.sub(shares);
             // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
             // decrementing then incrementing.
-            _shares[to] = _shares[to].add(sharesAmount);
+            _shares[to] = _shares[to].add(shares);
         }
 
-        _afterTokenTransfer(from, to, sharesAmount);
+        _afterTokenTransfer(from, to, shares);
     }
 
-    function _burn(address account, uint256 sharesAmount) private {
+    function _burn(address account, uint256 shares) private {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(account, address(0), sharesAmount);
+        _beforeTokenTransfer(account, address(0), shares);
 
         uint256 accountShares = sharesOf(account);
-        require(accountShares >= sharesAmount, "ERC20: burn amount exceeds balance");
+        require(accountShares >= shares, "ERC20: burn amount exceeds balance");
         unchecked {
-            _shares[account] = accountShares.sub(sharesAmount);
+            _shares[account] = accountShares.sub(shares);
             // Overflow not possible: amount <= accountBalance <= totalSupply.
-            _totalShares = _totalShares.sub(sharesAmount);
+            _totalShares = _totalShares.sub(shares);
         }
 
-        _afterTokenTransfer(account, address(0), sharesAmount);
+        _afterTokenTransfer(account, address(0), shares);
     }
 
     /**
-     * @notice Destroys `sharesAmount` shares from `from` account's holdings,
+     * @notice Destroys `shares` shares from `from` account's holdings,
      * decreasing the total amount of shares not the total supply (directly).
      * @dev This doesn't decrease the token total supply.
      *
      * Requirements:
      *
      * - `from` cannot be the zero address.
-     * - `from` must hold at least `sharesAmount` shares.
+     * - `from` must hold at least `shares` shares.
      * - the contract must not be paused.
      */
     function burn(address from, uint256 amount) public onlyRole(BURNER_ROLE) {
-        uint256 sharesAmount = getSharesBySupply(amount);
-        _burn(from, sharesAmount);
+        uint256 shares = amountToShares(amount);
+        _burn(from, shares);
     }
 
     /**
@@ -218,8 +223,8 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
      */
     function transfer(address to, uint256 amount) public returns (bool) {
         address owner = _msgSender();
-        uint256 sharesAmount = getSharesBySupply(amount);
-        _transferShares(owner, to, sharesAmount);
+        uint256 shares = amountToShares(amount);
+        _transferShares(owner, to, shares);
 
         return true;
     }
@@ -364,9 +369,9 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
      */
     function transferFrom(address from, address to, uint256 amount) public returns (bool) {
         address spender = _msgSender();
-        uint256 sharesAmount = getSharesBySupply(amount);
-        _spendAllowance(from, spender, sharesAmount);
-        _transferShares(from, to, sharesAmount);
+        uint256 shares = amountToShares(amount);
+        _spendAllowance(from, spender, shares);
+        _transferShares(from, to, shares);
 
         return true;
     }

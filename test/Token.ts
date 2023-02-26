@@ -10,6 +10,7 @@ const roles = {
   BURNER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE')),
   BLACKLIST: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE')),
   ORACLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE')),
+  UPGRADER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('UPGRADER_ROLE')),
 }
 
 describe("Token", () => {
@@ -314,6 +315,28 @@ describe("Token", () => {
         "Ownable: caller is not the owner"
       );
     });
+
+    it("does not upgrade without upgrader", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+
+      await expect(
+        contract.connect(acc1).upgradeTo(AddressZero)
+      ).to.be.revertedWith(
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.UPGRADER}`
+      );
+    });
+
+    it("upgrades with upgrader role", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+
+      await contract.grantRole(roles.UPGRADER, acc1.address);
+
+      await expect(
+        contract.connect(acc1).upgradeTo(AddressZero)
+      ).to.not.be.revertedWith(
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.UPGRADER}`
+      );
+    });
   });
 
   describe("Blacklist", () => {
@@ -612,7 +635,7 @@ describe("Token", () => {
       await contract.setRewardMultiplier(rewardMultiplier);
 
       expect(
-        await contract.getSharesBySupply(amount)
+        await contract.amountToShares(amount)
       ).to.equal(
         // We use fixed-point arithmetic to avoid precision issues
         amount.mul(toBaseUnit(1)).div(totalRewardMultiplier)
@@ -629,7 +652,7 @@ describe("Token", () => {
       await contract.setRewardMultiplier(rewardMultiplier);
 
       expect(
-        await contract.getSupplyByShares(amount)
+        await contract.sharesToAmount(amount)
       ).to.equal(
         // We use fixed-point arithmetic to avoid precision issues
         amount.mul(totalRewardMultiplier).div(toBaseUnit(1))
