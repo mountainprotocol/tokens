@@ -153,7 +153,7 @@ describe("Token", () => {
       const sharesAmount = amount.mul(toBaseUnit(1)).div(totalRewardMultiplier);
 
       await contract.grantRole(roles.ORACLE, owner.address);
-      await contract.setRewardMultiplier(rewardMultiplier);
+      await contract.addRewardMultiplier(rewardMultiplier);
       await contract.transfer(acc1.address, amount)
 
       expect(await contract.sharesOf(acc1.address)).to.equal(sharesAmount);
@@ -210,7 +210,7 @@ describe("Token", () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await expect(
-        contract.setRewardMultiplier(1)
+        contract.addRewardMultiplier(1)
       ).to.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`
       );
@@ -222,7 +222,7 @@ describe("Token", () => {
       await contract.grantRole(roles.ORACLE, owner.address);
 
       await expect(
-        contract.setRewardMultiplier(1)
+        contract.addRewardMultiplier(1)
       ).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`
       );
@@ -495,7 +495,7 @@ describe("Token", () => {
       const rewardMultiplier = await contract.rewardMultiplier();
       const expected = rewardMultiplier.add(interest);
 
-      await contract.setRewardMultiplier(interest)
+      await contract.addRewardMultiplier(interest)
 
       expect(
         await contract.rewardMultiplier()
@@ -511,7 +511,7 @@ describe("Token", () => {
       const value = 1;
 
       await expect(
-        contract.setRewardMultiplier(value)
+        contract.addRewardMultiplier(value)
       ).to.emit(contract, "RewardMultiplier").withArgs(rewardMultiplier.add(value));
     });
 
@@ -523,7 +523,7 @@ describe("Token", () => {
       const interest = toBaseUnit(0);
 
       await expect(
-        contract.setRewardMultiplier(interest)
+        contract.addRewardMultiplier(interest)
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
 
@@ -535,7 +535,7 @@ describe("Token", () => {
       const interest = toBaseUnit(0.05);
 
       await expect(
-        contract.setRewardMultiplier(interest)
+        contract.addRewardMultiplier(interest)
       ).to.be.revertedWith("Invalid RewardMultiplier");
     });
 
@@ -549,7 +549,7 @@ describe("Token", () => {
         await contract.totalSupply()
       ).to.equal(totalShares);
 
-      await contract.setRewardMultiplier(interest);
+      await contract.addRewardMultiplier(interest);
 
       const rewardMultiplier = await contract.rewardMultiplier();
       const expected = totalShares.mul(rewardMultiplier).div(toBaseUnit(1));
@@ -570,10 +570,12 @@ describe("Token", () => {
       const totalInterest = interest.add(toBaseUnit(1)); // 100.04%
 
       await contract.mint(acc1.address, amount); // Mint 1k
-      await contract.setRewardMultiplier(interest);
+      await contract.addRewardMultiplier(interest);
       await contract.mint(acc1.address, amount);// Mint 1k
 
       const expected = amount.mul(totalInterest).div(toBaseUnit(1)).add(amount);
+
+      console.log(((1000+(1000/1.0004))*1.0004).toFixed(2))
 
       expect(
         await contract.balanceOf(acc1.address)
@@ -593,7 +595,7 @@ describe("Token", () => {
       await contract.grantRole(roles.MINTER, owner.address);
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.mint(acc1.address, tokensAmount);
-      await contract.setRewardMultiplier(rewardMultiplier);
+      await contract.addRewardMultiplier(rewardMultiplier);
 
       expect(await contract.balanceOf(acc1.address))
         .to.equal(
@@ -619,7 +621,7 @@ describe("Token", () => {
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.mint(acc1.address, sharesToMint);
 
-      await contract.setRewardMultiplier(toBaseUnit(0.0001));
+      await contract.addRewardMultiplier(toBaseUnit(0.0001));
 
 
       expect (await contract.sharesOf(acc1.address)).to.equal(sharesToMint);
@@ -632,7 +634,7 @@ describe("Token", () => {
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
       await contract.grantRole(roles.ORACLE, owner.address);
-      await contract.setRewardMultiplier(rewardMultiplier);
+      await contract.addRewardMultiplier(rewardMultiplier);
 
       expect(
         await contract.amountToShares(amount)
@@ -649,7 +651,7 @@ describe("Token", () => {
       const totalRewardMultiplier = rewardMultiplier.add(toBaseUnit(1));
 
       await contract.grantRole(roles.ORACLE, owner.address);
-      await contract.setRewardMultiplier(rewardMultiplier);
+      await contract.addRewardMultiplier(rewardMultiplier);
 
       expect(
         await contract.sharesToAmount(amount)

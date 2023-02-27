@@ -25,7 +25,7 @@ const deploy = async () => {
 }
 
 const upgrade = async () => {
-  const PROXY_ADDRESS = "0x6816EEe1d41B103988799F2e7ABA0521E56C2679";
+  const PROXY_ADDRESS = "0xC8AD5ae7F71de691109CFDDC593Fb17E0Bc03B44";
   const newContract = await ethers.getContractFactory("TokenV3");
   console.log("Upgrading contract... %s", PROXY_ADDRESS);
   // It's no necessary to specify proxy's kind since it's inferred from the proxy address

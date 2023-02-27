@@ -271,7 +271,7 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
         return _rewardMultiplier;
     }
 
-    function setRewardMultiplier(uint256 rewardMultiplier_) public onlyRole(ORACLE_ROLE) {
+    function addRewardMultiplier(uint256 rewardMultiplier_) public onlyRole(ORACLE_ROLE) {
         require(rewardMultiplier_ > 0, "Invalid RewardMultiplier");
         require(rewardMultiplier_ < 500000000000000, "Invalid RewardMultiplier"); // 5bps
 
