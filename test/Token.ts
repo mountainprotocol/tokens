@@ -969,4 +969,32 @@ describe("Token", () => {
       ).to.revertedWith("ERC20: transfer amount exceeds balance");
     });
   });
+
+  describe("nonce", () => {
+    it("starts at 0", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      expect(await contract.nonces(owner.address)).to.equal(0);
+    });
+
+    it("returns the correct domain separator", async () => {
+      const { contract, owner } = await loadFixture(deployTokenFixture);
+      const chainId = await ethers.provider.getNetwork().then((network) => network.chainId);
+
+      const expectedDomainSeparator = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(
+          ["bytes32", "bytes32", "bytes32", "uint256", "address"],
+          [
+            ethers.utils.id("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+            ethers.utils.id(await contract.name()),
+            ethers.utils.id("1"),
+            chainId,
+            contract.address,
+          ]
+        )
+      );
+      expect(await contract.DOMAIN_SEPARATOR()).to.equal(expectedDomainSeparator);
+    });
+
+
+  });
 });

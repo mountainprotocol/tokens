@@ -8,14 +8,18 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 
 // TODO: Implement Permit
 // TODO: SafeERC20Upgradeable needed?
-// TODO: Lock functions gracetime period
+// TODO: Lock functions gracetime period: upgrade + addrewardmultiplier
 
 // Author: @mattiascaricato
-contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
     using SafeMathUpgradeable for uint256;
+    using CountersUpgradeable for CountersUpgradeable.Counter;
     // using SafeERC20Upgradeable for IERC20Upgradeable;
 
     string private _name;
@@ -27,6 +31,11 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
     mapping(address => mapping(address => uint256)) private _allowances;
+    mapping(address => CountersUpgradeable.Counter) private _nonces;
+
+    // solhint-disable-next-line var-name-mixedcase
+    bytes32 private constant _PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -47,6 +56,7 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
         __AccessControl_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
+        __EIP712_init(name_, "1");
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _mint(_msgSender(), initialShares);
@@ -399,5 +409,31 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
         }
 
         return true;
+    }
+
+    function DOMAIN_SEPARATOR() external view returns (bytes32) {
+        return _domainSeparatorV4();
+    }
+
+    function nonces(address owner) public view returns (uint256) {
+        return _nonces[owner].current();
+    }
+
+    function _useNonce(address owner) internal returns (uint256 current) {
+        CountersUpgradeable.Counter storage nonce = _nonces[owner];
+        current = nonce.current();
+        nonce.increment();
+    }
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public {
+
     }
 }
