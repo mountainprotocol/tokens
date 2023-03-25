@@ -6,11 +6,11 @@ const { AddressZero } = ethers.constants
 const toBaseUnit = (value: number) => ethers.utils.parseUnits(value.toString());
 
 const roles = {
-  MINTER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('MINTER_ROLE')),
-  BURNER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BURNER_ROLE')),
-  BLACKLIST: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('BLACKLIST_ROLE')),
-  ORACLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ORACLE_ROLE')),
-  UPGRADER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes('UPGRADER_ROLE')),
+  MINTER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")),
+  BURNER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("BURNER_ROLE")),
+  BLACKLIST: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("BLACKLIST_ROLE")),
+  ORACLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ORACLE_ROLE")),
+  UPGRADER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("UPGRADER_ROLE")),
 }
 
 describe("Token", () => {
@@ -29,7 +29,7 @@ describe("Token", () => {
     const contract = await upgrades.deployProxy(
       Token,
       [name, symbol, totalShares],
-      { initializer: 'initialize' }
+      { initializer: "initialize" }
     );
 
     return { contract, owner, acc1, acc2 };
@@ -371,7 +371,7 @@ describe("Token", () => {
 
       await expect(
         contract.transfer(acc1.address, 1)
-      ).to.be.revertedWith('Address is blacklisted');
+      ).to.be.revertedWith("Address is blacklisted");
     });
 
     it("allows transfers to addresses blacklisted", async () => {
@@ -384,7 +384,7 @@ describe("Token", () => {
 
       await expect(
         contract.transfer(acc1.address, 1)
-      ).to.not.be.revertedWith('Address is blacklisted');
+      ).to.not.be.revertedWith("Address is blacklisted");
     });
 
     it("does not add an address already blacklisted", async () => {
@@ -970,8 +970,17 @@ describe("Token", () => {
     });
   });
 
-  describe("nonce", () => {
-    it("starts at 0", async () => {
+  describe("Permit", () => {
+    const nonce = 0;
+
+    // const buildData = (chainId: number, verifyingContract: string, deadline: number) => ({
+    //   primaryType: 'Permit',
+    //   types: { EIP712Domain, Permit },
+    //   domain: { name, version, chainId, verifyingContract },
+    //   message: { owner, spender, value, nonce, deadline },
+    // });
+
+    it("initialize nonce at 0", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       expect(await contract.nonces(owner.address)).to.equal(0);
     });
@@ -980,7 +989,7 @@ describe("Token", () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
       const chainId = await ethers.provider.getNetwork().then((network) => network.chainId);
 
-      const expectedDomainSeparator = ethers.utils.keccak256(
+      const expected = ethers.utils.keccak256(
         ethers.utils.defaultAbiCoder.encode(
           ["bytes32", "bytes32", "bytes32", "uint256", "address"],
           [
@@ -992,9 +1001,28 @@ describe("Token", () => {
           ]
         )
       );
-      expect(await contract.DOMAIN_SEPARATOR()).to.equal(expectedDomainSeparator);
+      expect(await contract.DOMAIN_SEPARATOR()).to.equal(expected);
     });
 
+    it("Initialize nonce with 0", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
 
+      expect(await contract.nonces(acc1.address)).to.equal(0);
+    });
+
+    it("accepts owner signature", async () => {
+      const { contract, owner, acc1: spender } = await loadFixture(deployTokenFixture);
+      const value = 100;
+      const nonce = await contract.nonces(owner.address);
+      const deadline = ethers.constants.MaxUint256;
+
+      await contract.permit(owner.address, spender.address, value, deadline);
+
+      expect(await contract.nonces(owner.address)).to.equal(1);
+      expect(await contract.allowance(owner.address, spender)).to.equal(value);
+      // await expect(
+      //   contract.permit(owner.address, owner.address, value, deadline, v, ethers.utils.hexlify(r), ethers.utils.hexlify(s))
+      // ).to.emit(contract, "Approval").withArgs(owner.address, owner.address, value);
+    });
   });
 });

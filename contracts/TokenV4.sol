@@ -434,6 +434,16 @@ contract TokenV4 is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradea
         bytes32 r,
         bytes32 s
     ) public {
+        // Use safe permit?
+        require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
+        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));
+
+        bytes32 hash = _hashTypedDataV4(structHash);
+
+        address signer = ECDSAUpgradeable.recover(hash, v, r, s);
+        require(signer == owner, "ERC20Permit: invalid signature");
+
+        _approve(owner, spender, value);
     }
 }
