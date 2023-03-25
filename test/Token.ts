@@ -980,9 +980,9 @@ describe("Token", () => {
     //   message: { owner, spender, value, nonce, deadline },
     // });
 
-    it("initialize nonce at 0", async () => {
-      const { contract, owner } = await loadFixture(deployTokenFixture);
-      expect(await contract.nonces(owner.address)).to.equal(0);
+    it("initializes nonce at 0", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+      expect(await contract.nonces(acc1.address)).to.equal(0);
     });
 
     it("returns the correct domain separator", async () => {
@@ -1002,12 +1002,6 @@ describe("Token", () => {
         )
       );
       expect(await contract.DOMAIN_SEPARATOR()).to.equal(expected);
-    });
-
-    it("Initialize nonce with 0", async () => {
-      const { contract, acc1 } = await loadFixture(deployTokenFixture);
-
-      expect(await contract.nonces(acc1.address)).to.equal(0);
     });
 
     it("accepts owner signature", async () => {
