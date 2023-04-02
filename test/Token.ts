@@ -1,16 +1,20 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { Contract, BigNumber } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-signer';
+import { parseUnits, keccak256, toUtf8Bytes, defaultAbiCoder, id, splitSignature } from 'ethers/lib/utils';
 
 const { AddressZero } = ethers.constants
-const toBaseUnit = (value: number) => ethers.utils.parseUnits(value.toString());
+const toBaseUnit = (value: number) => parseUnits(value.toString());
 
 const roles = {
-  MINTER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MINTER_ROLE")),
-  BURNER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("BURNER_ROLE")),
-  BLACKLIST: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("BLACKLIST_ROLE")),
-  ORACLE: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ORACLE_ROLE")),
-  UPGRADER: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("UPGRADER_ROLE")),
+  MINTER: keccak256(toUtf8Bytes("MINTER_ROLE")),
+  BURNER: keccak256(toUtf8Bytes("BURNER_ROLE")),
+  BLACKLIST: keccak256(toUtf8Bytes("BLACKLIST_ROLE")),
+  ORACLE: keccak256(toUtf8Bytes("ORACLE_ROLE")),
+  UPGRADER: keccak256(toUtf8Bytes("UPGRADER_ROLE")),
 }
 
 describe("Token", () => {
@@ -971,45 +975,14 @@ describe("Token", () => {
   });
 
   describe("Permit", () => {
-    const nonce = 0;
-
-    // const buildData = (chainId: number, verifyingContract: string, deadline: number) => ({
-    //   primaryType: 'Permit',
-    //   types: { EIP712Domain, Permit },
-    //   domain: { name, version, chainId, verifyingContract },
-    //   message: { owner, spender, value, nonce, deadline },
-    // });
-
-    it("initializes nonce at 0", async () => {
-      const { contract, acc1 } = await loadFixture(deployTokenFixture);
-      expect(await contract.nonces(acc1.address)).to.equal(0);
-    });
-
-    it("returns the correct domain separator", async () => {
-      const { contract } = await loadFixture(deployTokenFixture);
-      const chainId = (await contract.provider.getNetwork()).chainId;
-
-      const expected = ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(
-          ["bytes32", "bytes32", "bytes32", "uint256", "address"],
-          [
-            ethers.utils.id("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-            ethers.utils.id(await contract.name()),
-            ethers.utils.id("1"),
-            chainId,
-            contract.address,
-          ]
-        )
-      );
-      expect(await contract.DOMAIN_SEPARATOR()).to.equal(expected);
-    });
-
-    it("accepts owner signature", async () => {
-      const { contract, owner, acc1: spender } = await loadFixture(deployTokenFixture);
-      const value = 100;
-      const nonce = await contract.nonces(owner.address);
-      const deadline = ethers.constants.MaxUint256;
-
+    const buildData = async (
+      contract: Contract,
+      owner: SignerWithAddress,
+      spender: SignerWithAddress,
+      value: number,
+      nonce: number,
+      deadline: number | BigNumber,
+      ) => {
       const domain = {
         name: await contract.name(),
         version: "1",
@@ -1030,19 +1003,106 @@ describe("Token", () => {
       const message = {
         owner: owner.address,
         spender: spender.address,
-        value: value,
-        nonce: nonce,
-        deadline: deadline,
+        value,
+        nonce,
+        deadline,
       };
 
-      const signature = await owner._signTypedData(domain, types, message);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      return { domain, types, message };
+    };
+
+    const signTypedData = async (
+      signer: SignerWithAddress,
+      domain: TypedDataDomain,
+      types: Record<string, Array<TypedDataField>>,
+      message: Record<string, any>) => {
+      const signature = await signer._signTypedData(domain, types, message);
+
+      return splitSignature(signature);
+    };
+
+    it("initializes nonce at 0", async () => {
+      const { contract, acc1 } = await loadFixture(deployTokenFixture);
+      expect(await contract.nonces(acc1.address)).to.equal(0);
+    });
+
+    it("returns the correct domain separator", async () => {
+      const { contract } = await loadFixture(deployTokenFixture);
+      const chainId = (await contract.provider.getNetwork()).chainId;
+
+      const expected = keccak256(
+        defaultAbiCoder.encode(
+          ["bytes32", "bytes32", "bytes32", "uint256", "address"],
+          [
+            id("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+            id(await contract.name()),
+            id("1"),
+            chainId,
+            contract.address,
+          ]
+        )
+      );
+      expect(await contract.DOMAIN_SEPARATOR()).to.equal(expected);
+    });
+
+    it("accepts owner signature", async () => {
+      const { contract, owner, acc1: spender } = await loadFixture(deployTokenFixture);
+      const value = 100;
+      const nonce = await contract.nonces(owner.address);
+      const deadline = ethers.constants.MaxUint256;
+
+      const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
+      const { v, r, s } = await signTypedData(owner, domain, types, message);
 
       await expect(
         contract.permit(owner.address, spender.address, value, deadline, v, r, s)
       ).to.emit(contract, "Approval").withArgs(owner.address, spender.address, value);
       expect(await contract.nonces(owner.address)).to.equal(1);
       expect(await contract.allowance(owner.address, spender.address)).to.equal(value);
+    });
+
+    it("rejects reused signature", async () => {
+      const { contract, owner, acc1: spender } = await loadFixture(deployTokenFixture);
+      const value = 100;
+      const nonce = await contract.nonces(owner.address);
+      const deadline = ethers.constants.MaxUint256;
+
+      const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
+      const { v, r, s } = await signTypedData(owner, domain, types, message);
+
+      await contract.permit(owner.address, spender.address, value, deadline, v, r, s);
+
+      await expect(
+        contract.permit(owner.address, spender.address, value, deadline, v, r, s)
+      ).to.be.revertedWith("ERC20Permit: invalid signature");
+    });
+
+    it("rejects other signature", async () => {
+      const { contract, owner, acc1: spender, acc2: otherAcc } = await loadFixture(deployTokenFixture);
+      const value = 100;
+      const nonce = await contract.nonces(owner.address);
+      const deadline = ethers.constants.MaxUint256;
+
+      const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
+      const { v, r, s } = await signTypedData(otherAcc, domain, types, message);
+
+      await expect(
+        contract.permit(owner.address, spender.address, value, deadline, v, r, s)
+      ).to.be.revertedWith("ERC20Permit: invalid signature");
+    });
+
+    it("rejects expired permit", async () => {
+      const { contract, owner, acc1: spender } = await loadFixture(deployTokenFixture);
+      const value = 100;
+      const nonce = await contract.nonces(owner.address);
+      const deadline = (await time.latest()) - time.duration.weeks(1);
+
+      const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
+      const { v, r, s } = await signTypedData(owner, domain, types, message);
+
+      await expect(
+        contract.permit(owner.address, spender.address, value, deadline, v, r, s)
+      ).to.be.revertedWith("ERC20Permit: expired deadline");
     });
   });
 });
