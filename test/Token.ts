@@ -25,7 +25,7 @@ describe("Token", () => {
     // Contracts are deployed using the first signer/account by default
     const [owner, acc1, acc2] = await ethers.getSigners();
 
-    const Token = await ethers.getContractFactory("TokenV4");
+    const Token = await ethers.getContractFactory("Token");
     const contract = await upgrades.deployProxy(
       Token,
       [name, symbol, totalShares],
@@ -986,8 +986,8 @@ describe("Token", () => {
     });
 
     it("returns the correct domain separator", async () => {
-      const { contract, owner } = await loadFixture(deployTokenFixture);
-      const chainId = await ethers.provider.getNetwork().then((network) => network.chainId);
+      const { contract } = await loadFixture(deployTokenFixture);
+      const chainId = (await contract.provider.getNetwork()).chainId;
 
       const expected = ethers.utils.keccak256(
         ethers.utils.defaultAbiCoder.encode(
@@ -1010,7 +1010,47 @@ describe("Token", () => {
       const nonce = await contract.nonces(owner.address);
       const deadline = ethers.constants.MaxUint256;
 
-      await contract.permit(owner.address, spender.address, value, deadline);
+      const domain = {
+        name: await contract.name(),
+        version: "1",
+        chainId: (await contract.provider.getNetwork()).chainId,
+        verifyingContract: contract.address,
+      };
+
+      const types = {
+        EIP712Domain: [
+          { name: "name", type: "string" },
+          { name: "version", type: "string" },
+          { name: "chainId", type: "uint256" },
+          { name: "verifyingContract", type: "address" },
+        ],
+        Permit: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      };
+
+      const message = {
+        owner: owner.address,
+        spender: spender.address,
+        value: value,
+        nonce: nonce,
+        deadline: deadline,
+      };
+
+      console.log({domain});
+      console.log({types});
+      console.log({message});
+      // get signature using domain, types and message
+      const signature = await owner._signTypedData(domain, types, message);
+      console.log({signature});
+      const { v, r, s } = ethers.utils.splitSignature(signature);
+
+
+      await contract.permit(owner.address, spender.address, value, deadline, v, r, s);
 
       expect(await contract.nonces(owner.address)).to.equal(1);
       expect(await contract.allowance(owner.address, spender)).to.equal(value);

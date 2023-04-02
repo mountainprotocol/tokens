@@ -13,7 +13,7 @@ const deploy = async () => {
     ethers.utils.formatEther((await deployer.getBalance()))
   );
 
-  const Token = await ethers.getContractFactory("TokenV4");
+  const Token = await ethers.getContractFactory("Token");
   const token = await upgrades.deployProxy(
     Token,
     ["Mountain Protocol Token", "USDM", ethers.utils.parseUnits("100000000")], // 100M
