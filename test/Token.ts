@@ -1018,12 +1018,6 @@ describe("Token", () => {
       };
 
       const types = {
-        EIP712Domain: [
-          { name: "name", type: "string" },
-          { name: "version", type: "string" },
-          { name: "chainId", type: "uint256" },
-          { name: "verifyingContract", type: "address" },
-        ],
         Permit: [
           { name: "owner", type: "address" },
           { name: "spender", type: "address" },
@@ -1041,22 +1035,14 @@ describe("Token", () => {
         deadline: deadline,
       };
 
-      console.log({domain});
-      console.log({types});
-      console.log({message});
-      // get signature using domain, types and message
       const signature = await owner._signTypedData(domain, types, message);
-      console.log({signature});
       const { v, r, s } = ethers.utils.splitSignature(signature);
 
-
-      await contract.permit(owner.address, spender.address, value, deadline, v, r, s);
-
+      await expect(
+        contract.permit(owner.address, spender.address, value, deadline, v, r, s)
+      ).to.emit(contract, "Approval").withArgs(owner.address, spender.address, value);
       expect(await contract.nonces(owner.address)).to.equal(1);
-      expect(await contract.allowance(owner.address, spender)).to.equal(value);
-      // await expect(
-      //   contract.permit(owner.address, owner.address, value, deadline, v, ethers.utils.hexlify(r), ethers.utils.hexlify(s))
-      // ).to.emit(contract, "Approval").withArgs(owner.address, owner.address, value);
+      expect(await contract.allowance(owner.address, spender.address)).to.equal(value);
     });
   });
 });
