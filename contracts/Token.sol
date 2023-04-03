@@ -2,7 +2,6 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -13,14 +12,12 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
-// TODO: SafeERC20Upgradeable needed?
 // TODO: Lock functions gracetime period: upgrade + addrewardmultiplier
 
 // Author: @mattiascaricato
 contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
     using SafeMathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
-    // using SafeERC20Upgradeable for IERC20Upgradeable;
 
     string private _name;
     string private _symbol;
@@ -434,7 +431,6 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
         bytes32 r,
         bytes32 s
     ) public {
-        // Use safe permit?
         require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
         bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));
