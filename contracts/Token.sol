@@ -45,7 +45,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
     event RewardMultiplier(uint256 indexed addr);
 
     /**
-     * @notice Initializes the Token contract
+     * @notice Initializes the contract
      * @param name_ The name of the token
      * @param symbol_ The symbol of the token
      * @param initialShares The initial amount of shares for the contract creator
