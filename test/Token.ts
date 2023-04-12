@@ -236,7 +236,7 @@ describe("Token", () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await expect(
-        contract.blacklist(owner.address)
+        contract.blacklistAccounts([owner.address])
       ).to.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
       );
@@ -248,7 +248,7 @@ describe("Token", () => {
       await contract.grantRole(roles.BLACKLIST, owner.address);
 
       await expect(
-        contract.blacklist(owner.address)
+        contract.blacklistAccounts([owner.address])
       ).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
       );
@@ -258,19 +258,19 @@ describe("Token", () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await expect(
-        contract.unblacklist(owner.address)
+        contract.unblacklistAccounts([owner.address])
       ).to.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
       );
     });
 
-    it("should unblacklist with blacklist role", async () => {
+    it("unblacklists with blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
 
       await expect(
-        contract.unblacklist(owner.address)
+        contract.unblacklistAccounts([owner.address])
       ).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
       );
@@ -348,69 +348,119 @@ describe("Token", () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklist(acc1.address);
+      await contract.blacklistAccounts([acc1.address]);
 
       expect(
         await contract.isBlacklisted(acc1.address)
       ).to.equal(true);
     });
 
+    it("blacklists multiples accounts", async () => {
+      const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
+
+      await contract.grantRole(roles.BLACKLIST, owner.address);
+      await contract.blacklistAccounts([acc1.address, acc2.address]);
+
+      const result = await Promise.all([
+        contract.isBlacklisted(acc1.address),
+        contract.isBlacklisted(acc2.address),
+      ]);
+
+      expect(result.every(Boolean)).to.equal(true);
+    });
+
     it("unblacklists an account", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklist(acc1.address);
-      await contract.unblacklist(acc1.address);
+      await contract.blacklistAccounts([acc1.address]);
+      await contract.unblacklistAccounts([acc1.address]);
 
       expect(
         await contract.isBlacklisted(acc1.address)
       ).to.equal(false);
     });
 
-    it("does not transfer when from address is blacklisted", async () => {
+    it("unblacklists multiples accounts", async () => {
+      const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
+
+      await contract.grantRole(roles.BLACKLIST, owner.address);
+      await contract.blacklistAccounts([acc1.address, acc2.address]);
+      await contract.unblacklistAccounts([acc1.address, acc2.address]);
+
+      const result = await Promise.all([
+        contract.isBlacklisted(acc1.address),
+        contract.isBlacklisted(acc2.address),
+      ]);
+
+      expect(result.every(value => value === false)).to.equal(true);
+    });
+
+    it("does not allow transfers from blacklisted accounts", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklist(owner.address);
+      await contract.blacklistAccounts([owner.address]);
 
       await expect(
         contract.transfer(acc1.address, 1)
       ).to.be.revertedWith("Address is blacklisted");
     });
 
-    it("allows transfers to addresses blacklisted", async () => {
+    it("allows transfers to blacklisted accounts", async () => {
       // Each blacklist check is an SLOAD, which is gas intensive.
       // We only block sender not receiver, so we don't tax every user
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklist(acc1.address);
+      await contract.blacklistAccounts([acc1.address]);
 
       await expect(
         contract.transfer(acc1.address, 1)
       ).to.not.be.revertedWith("Address is blacklisted");
     });
 
-    it("does not add an address already blacklisted", async () => {
+    it("does not add an account already blacklisted", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklist(acc1.address);
+      await contract.blacklistAccounts([acc1.address]);
 
       await expect(
-        contract.blacklist(acc1.address)
+        contract.blacklistAccounts([acc1.address])
       ).to.be.revertedWith("Address already blacklisted");
     });
 
-    it("does not unblacklist an address not blacklisted", async () => {
+    it("does not unblacklist an account not blacklisted", async () => {
       const { contract, owner } = await loadFixture(deployTokenFixture);
 
       await contract.grantRole(roles.BLACKLIST, owner.address);
 
       await expect(
-        contract.unblacklist(owner.address)
+        contract.unblacklistAccounts([owner.address])
       ).to.be.revertedWith("Address is not blacklisted");
     });
+  });
+
+  it("reverts when blacklisting repeated accounts", async () => {
+    const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
+
+      await contract.grantRole(roles.BLACKLIST, owner.address);
+
+      await expect(
+        contract.blacklistAccounts([acc1.address, acc2.address, acc2.address])
+      ).to.be.revertedWith("Address already blacklisted");
+  });
+
+  it("reverts when unblacklisting repeated accounts", async () => {
+    const { contract, owner, acc1, acc2 } = await loadFixture(deployTokenFixture);
+
+      await contract.grantRole(roles.BLACKLIST, owner.address);
+      await contract.blacklistAccounts([acc1.address, acc2.address]);
+
+      await expect(
+        contract.unblacklistAccounts([acc1.address, acc2.address, acc2.address])
+      ).to.be.revertedWith("Address is not blacklisted");
   });
 
   describe("Pause", () => {

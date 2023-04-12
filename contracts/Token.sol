@@ -40,8 +40,8 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    event AddressBlacklisted(address indexed addr);
-    event AddressUnBlacklisted(address indexed addr);
+    event AccountBlacklisted(address indexed addr);
+    event AccountUnblacklisted(address indexed addr);
     event RewardMultiplier(uint256 indexed addr);
 
     /**
@@ -50,7 +50,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @param symbol_ The symbol of the token
      * @param initialShares The initial amount of shares for the contract creator
      */
-    function initialize(string memory name_, string memory symbol_, uint256 initialShares) public initializer {
+    function initialize(string memory name_, string memory symbol_, uint256 initialShares) external initializer {
         _name = name_;
         _symbol = symbol_;
         _rewardMultiplier = BASE;
@@ -79,7 +79,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @notice Returns the name of the token
      * @return A string representing the token's name
      */
-    function name() public view returns (string memory) {
+    function name() external view returns (string memory) {
         return _name;
     }
 
@@ -87,7 +87,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @notice Returns the symbol of the token
      * @return A string representing the token's symbol
      */
-    function symbol() public view returns (string memory) {
+    function symbol() external view returns (string memory) {
         return _symbol;
     }
 
@@ -98,7 +98,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * {IERC20-balanceOf} and {IERC20-transfer}.
      * @return The number of decimals (18)
      */
-    function decimals() public pure returns (uint8) {
+    function decimals() external pure returns (uint8) {
         return 18;
     }
 
@@ -124,7 +124,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @notice Returns the total amount of shares
      * @return The total amount of shares
      */
-    function totalShares() public view returns (uint256) {
+    function totalShares() external view returns (uint256) {
         return _totalShares;
     }
 
@@ -132,7 +132,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @notice Returns the total supply of tokens
      * @return The total supply of tokens
      */
-    function totalSupply() public view returns (uint256) {
+    function totalSupply() external view returns (uint256) {
         return sharesToAmount(_totalShares);
     }
 
@@ -152,7 +152,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @param account The address to query the balance of
      * @return The balance of the specified address
      */
-    function balanceOf(address account) public view returns (uint256) {
+    function balanceOf(address account) external view returns (uint256) {
         return sharesToAmount(sharesOf(account));
     }
 
@@ -192,7 +192,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @param to The address to mint the tokens to
      * @param amount The amount of tokens to mint
      */
-    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
         uint256 shares = amountToShares(amount);
         _mint(to, shares);
     }
@@ -260,7 +260,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @param from The address from which tokens will be burned.
      * @param amount The amount of tokens to burn.
      */
-    function burn(address from, uint256 amount) public onlyRole(BURNER_ROLE) {
+    function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
         uint256 shares = amountToShares(amount);
         _burn(from, shares);
     }
@@ -276,7 +276,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @param amount The number of tokens to transfer.
      * @return A boolean value indicating whether the operation succeeded.
      */
-    function transfer(address to, uint256 amount) public returns (bool) {
+    function transfer(address to, uint256 amount) external returns (bool) {
         address owner = _msgSender();
         uint256 shares = amountToShares(amount);
         _transferShares(owner, to, shares);
@@ -288,20 +288,42 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @notice Blacklists the specified address
      * @param account The address to blacklist
      */
-    function blacklist(address account) public onlyRole(BLACKLIST_ROLE) {
+    function _blacklistAccount(address account) internal onlyRole(BLACKLIST_ROLE) {
         require(!_blacklist[account], "Address already blacklisted");
         _blacklist[account] = true;
-        emit AddressBlacklisted(account);
+        emit AccountBlacklisted(account);
     }
 
     /**
      * @notice Removes the specified address from the blacklist
      * @param account The address to remove from the blacklist
      */
-    function unblacklist(address account) public onlyRole(BLACKLIST_ROLE) {
+    function _unblacklistAccount(address account) internal onlyRole(BLACKLIST_ROLE) {
         require(_blacklist[account], "Address is not blacklisted");
         _blacklist[account] = false;
-        emit AddressUnBlacklisted(account);
+        emit AccountUnblacklisted(account);
+    }
+
+    /**
+     * @notice Blacklists multiple accounts at once
+     * @dev This function can only be called by an account with the BLACKLIST_ROLE
+     * @param addresses An array of addresses to be blacklisted
+     */
+    function blacklistAccounts(address[] calldata addresses) external onlyRole(BLACKLIST_ROLE) {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            _blacklistAccount(addresses[i]);
+        }
+    }
+
+    /**
+     * @notice Removes multiple accounts from the blacklist at once
+     * @dev This function can only be called by an account with the BLACKLIST_ROLE
+     * @param addresses An array of addresses to be removed from the blacklist
+     */
+    function unblacklistAccounts(address[] calldata addresses) external onlyRole(BLACKLIST_ROLE) {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            _unblacklistAccount(addresses[i]);
+        }
     }
 
     /**
@@ -331,7 +353,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @notice Pauses token transfers and other operations.
      * @dev Only the contract owner can call this function. Inherits the _pause function from @openzeppelin/PausableUpgradeable contract.
      */
-    function pause() public onlyOwner {
+    function pause() external onlyOwner {
         super._pause();
     }
 
@@ -339,7 +361,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @notice Unpauses token transfers and other operations.
      * @dev Only the contract owner can call this function. Inherits the _unpause function from @openzeppelin/PausableUpgradeable contract.
      */
-    function unpause() public onlyOwner {
+    function unpause() external onlyOwner {
         super._unpause();
     }
 
@@ -356,7 +378,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @dev Only users with ORACLE_ROLE can call this function.
      * @param rewardMultiplier_ The new reward multiplier to be added.
      */
-    function addRewardMultiplier(uint256 rewardMultiplier_) public onlyRole(ORACLE_ROLE) {
+    function addRewardMultiplier(uint256 rewardMultiplier_) external onlyRole(ORACLE_ROLE) {
         require(rewardMultiplier_ > 0, "Invalid RewardMultiplier");
         require(rewardMultiplier_ < 500000000000000, "Invalid RewardMultiplier"); // 5bps
 
@@ -400,7 +422,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) public returns (bool) {
+    function approve(address spender, uint256 amount) external returns (bool) {
         address owner = _msgSender();
         _approve(owner, spender, amount);
 
@@ -456,7 +478,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * - the caller must have allowance for ``from``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address from, address to, uint256 amount) public returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         address spender = _msgSender();
         uint256 shares = amountToShares(amount);
         _spendAllowance(from, spender, shares);
@@ -479,7 +501,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool) {
         address owner = _msgSender();
         uint256 currentAllowance = allowance(owner, spender);
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
@@ -503,7 +525,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
      * @param owner The address whose nonce is to be retrieved.
      * @return The current nonce as a uint256 value.
      */
-    function nonces(address owner) public view returns (uint256) {
+    function nonces(address owner) external view returns (uint256) {
         return _nonces[owner].current();
     }
 
@@ -537,7 +559,7 @@ contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeabl
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public {
+    ) external {
         require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
         bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));
