@@ -17,8 +17,8 @@ const roles = {
   UPGRADER: keccak256(toUtf8Bytes("UPGRADER_ROLE")),
 }
 
-describe("Token", () => {
-  const name = "Mountain Protocol USD Token";
+describe("USDM", () => {
+  const name = "Mountain Protocol USD";
   const symbol = "USDM";
   const totalShares = toBaseUnit(1337);
 
@@ -29,7 +29,7 @@ describe("Token", () => {
     // Contracts are deployed using the first signer/account by default
     const [owner, acc1, acc2] = await ethers.getSigners();
 
-    const Token = await ethers.getContractFactory("Token");
+    const Token = await ethers.getContractFactory("Usdm");
     const contract = await upgrades.deployProxy(
       Token,
       [name, symbol, totalShares],

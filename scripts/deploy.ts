@@ -16,7 +16,7 @@ const deploy = async () => {
   const Token = await ethers.getContractFactory("Token");
   const token = await upgrades.deployProxy(
     Token,
-    ["Mountain Protocol Token", "USDM", ethers.utils.parseUnits("100000000")], // 100M
+    ["Mountain Protocol USD", "USDM", ethers.utils.parseUnits("1")], // 100M
     { initializer: "initialize", kind: "uups" }
   );
   await token.deployed();

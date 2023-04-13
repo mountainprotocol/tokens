@@ -12,10 +12,10 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
-// TODO: Lock functions gracetime period: upgrade + addrewardmultiplier
+// TODO: Upgrade Time lock
 
 // @author: @mattiascaricato
-contract Token is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
+contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
     using SafeMathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
