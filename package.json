@@ -1,13 +1,35 @@
 {
   "name": "token-poc",
   "version": "1.0.0",
-  "description": "Mountain Protocol Token PoC",
+  "description": "Mountain Protocol Token Project",
   "main": "index.js",
-  "repository": "git@github.com:mountainprotocol/token-poc.git",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mountainprotocol/token-poc.git"
+  },
   "author": "Mati <mattiascaricato@gmail.com>",
   "license": "UNLICENSED",
-  "private": true,
+  "bugs": {
+    "url": "https://github.com/mountainprotocol/token-poc/issues"
+  },
+  "homepage": "https://github.com/mountainprotocol/token-poc#readme",
   "devDependencies": {
-    "hardhat": "^2.12.6"
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.1",
+    "@nomiclabs/hardhat-solhint": "^3.0.0",
+    "@openzeppelin/hardhat-upgrades": "^1.22.1",
+    "@openzeppelin/test-helpers": "^0.5.16",
+    "dotenv": "^16.0.3",
+    "hardhat": "^2.12.6",
+    "hardhat-gas-reporter": "^1.0.9",
+    "mocha": "^10.2.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.1",
+    "@openzeppelin/contracts-upgradeable": "^4.8.1"
   }
 }
