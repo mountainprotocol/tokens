@@ -1,6 +1,6 @@
-# USDM
+# Mountain Protocol USD
 
-This smart contract implements a rebasing ERC-20 token with additional functionality such as rebasing, reward multiplier, blacklisting, permit support and upgradeability.
+This smart contract implements a custom rebasing ERC-20 token with additional features like pausing, blacklisting, access control, and upgradability. The contract aims to reflect the T-Bills APY into the token value through a reward multiplier mechanism. Users receive a proportional number of shares when they deposit tokens, and the number of tokens they can withdraw is calculated based on the current reward multiplier. The addRewardMultiplier function is called once a day to adjust the reward multiplier, ensuring accurate reflection of the yield from 3 months maturity T-Bills.
 
 ## Features
 
