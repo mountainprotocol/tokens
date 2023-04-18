@@ -288,7 +288,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @notice Blacklists the specified address
      * @param account The address to blacklist
      */
-    function _blacklistAccount(address account) internal onlyRole(BLACKLIST_ROLE) {
+    function _blacklistAccount(address account) internal {
         require(!_blacklist[account], "Address already blacklisted");
         _blacklist[account] = true;
         emit AccountBlacklisted(account);
@@ -298,7 +298,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @notice Removes the specified address from the blacklist
      * @param account The address to remove from the blacklist
      */
-    function _unblacklistAccount(address account) internal onlyRole(BLACKLIST_ROLE) {
+    function _unblacklistAccount(address account) internal {
         require(_blacklist[account], "Address is not blacklisted");
         _blacklist[account] = false;
         emit AccountUnblacklisted(account);
