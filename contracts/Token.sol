@@ -346,7 +346,6 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     }
 
     function _afterTokenTransfer(address from, address to, uint256 amount) private {
-        // TODO: the event should be triggered with amount not shares
         emit Transfer(from, to, amount);
     }
 
