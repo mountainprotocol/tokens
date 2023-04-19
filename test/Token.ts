@@ -1020,6 +1020,22 @@ describe("USDM", () => {
         contract.connect(acc1).transferFrom(from, to, amount)
       ).to.revertedWith("ERC20: transfer amount exceeds balance");
     });
+
+    it("decreases allowance by amount of tokens, not by shares", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployTokenFixture);
+      const from = owner.address;
+      const to = acc1.address;
+      const amount = toBaseUnit(1);
+
+      await contract.grantRole(roles.ORACLE, owner.address);
+      await contract.addRewardMultiplier(toBaseUnit(0.0004)); // 4bps
+      await contract.approve(to, amount);
+      await contract.connect(acc1).transferFrom(from, to, amount)
+
+      expect (
+        await contract.allowance(from, to)
+      ).to.equal(0);
+    });
   });
 
   describe("Permit", () => {

@@ -198,18 +198,19 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     }
 
     /**
-     * @notice Transfers a specified number of shares from one address to another.
+     * @notice Transfers a specified number of tokens from one address to another.
      * @dev This is an internal function.
      * @param from The address from which shares will be transferred.
      * @param to The address to which shares will be transferred.
-     * @param shares The number of shares to transfer.
+     * @param amount The number of tokens to transfer.
      */
-    function _transferShares(address from, address to, uint256 shares) private {
+    function _transfer(address from, address to, uint256 amount) private {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
 
-        _beforeTokenTransfer(from, to, shares);
+        _beforeTokenTransfer(from, to, amount);
 
+        uint256 shares = amountToShares(amount);
         uint256 fromShares = _shares[from];
         require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
         unchecked {
@@ -219,7 +220,7 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
             _shares[to] = _shares[to].add(shares);
         }
 
-        _afterTokenTransfer(from, to, shares);
+        _afterTokenTransfer(from, to, amount);
     }
 
     /**
@@ -278,8 +279,7 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      */
     function transfer(address to, uint256 amount) external returns (bool) {
         address owner = _msgSender();
-        uint256 shares = amountToShares(amount);
-        _transferShares(owner, to, shares);
+        _transfer(owner, to, amount);
 
         return true;
     }
@@ -474,10 +474,8 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      */
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         address spender = _msgSender();
-        uint256 shares = amountToShares(amount);
-        // TODO: spendallowance should be in amount not in shares
-        _spendAllowance(from, spender, shares); // FIX
-        _transferShares(from, to, shares);
+        _spendAllowance(from, spender, amount);
+        _transfer(from, to, amount);
 
         return true;
     }
