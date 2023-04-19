@@ -15,7 +15,7 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.
 // TODO: Upgrade Time lock
 
 // @author: @mattiascaricato
-contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
+contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
     using SafeMathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
