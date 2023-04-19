@@ -629,8 +629,6 @@ describe("USDM", () => {
 
       const expected = amount.mul(totalInterest).div(toBaseUnit(1)).add(amount);
 
-      console.log(((1000+(1000/1.0004))*1.0004).toFixed(2))
-
       expect(
         await contract.balanceOf(acc1.address)
       ).to.equal(

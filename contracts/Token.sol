@@ -21,9 +21,9 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
 
     string private _name;
     string private _symbol;
-    uint256 private _rewardMultiplier;
     uint256 private _totalShares;
     uint256 private constant BASE = 1e18;
+    uint256 public rewardMultiplier;
 
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
@@ -53,7 +53,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     function initialize(string memory name_, string memory symbol_, uint256 initialShares) external initializer {
         _name = name_;
         _symbol = symbol_;
-        _rewardMultiplier = BASE;
+        rewardMultiplier = BASE;
 
         __Ownable_init();
         __AccessControl_init();
@@ -108,7 +108,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @return The equivalent amount of shares
      */
     function amountToShares(uint256 amount) public view returns (uint256) {
-        return amount.mul(BASE).div(rewardMultiplier());
+        return amount.mul(BASE).div(rewardMultiplier);
     }
 
     /**
@@ -117,7 +117,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @return The equivalent amount of tokens
      */
     function sharesToAmount(uint256 shares) public view returns (uint256) {
-        return shares.mul(rewardMultiplier()).div(BASE);
+        return shares.mul(rewardMultiplier).div(BASE);
     }
 
     /**
@@ -346,6 +346,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     }
 
     function _afterTokenTransfer(address from, address to, uint256 amount) private {
+        // TODO: the event should be triggered with amount not shares
         emit Transfer(from, to, amount);
     }
 
@@ -366,25 +367,18 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     }
 
     /**
-     * @notice Returns the current reward multiplier
-     * @return The current reward multiplier
-     */
-    function rewardMultiplier() public view returns (uint256) {
-        return _rewardMultiplier;
-    }
-
-    /**
      * @notice Adds a new reward multiplier to the existing reward multiplier.
      * @dev Only users with ORACLE_ROLE can call this function.
      * @param rewardMultiplier_ The new reward multiplier to be added.
      */
     function addRewardMultiplier(uint256 rewardMultiplier_) external onlyRole(ORACLE_ROLE) {
+        // TODO: change addrewardmultiplier to setrewardmultiplier
         require(rewardMultiplier_ > 0, "Invalid RewardMultiplier");
         require(rewardMultiplier_ < 500000000000000, "Invalid RewardMultiplier"); // 5bps
 
-        _rewardMultiplier = _rewardMultiplier.add(rewardMultiplier_);
+        rewardMultiplier = rewardMultiplier.add(rewardMultiplier_);
 
-        emit RewardMultiplier(_rewardMultiplier);
+        emit RewardMultiplier(rewardMultiplier);
     }
 
     /**
@@ -481,7 +475,8 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         address spender = _msgSender();
         uint256 shares = amountToShares(amount);
-        _spendAllowance(from, spender, shares);
+        // TODO: spendallowance should be in amount not in shares
+        _spendAllowance(from, spender, shares); // FIX
         _transferShares(from, to, shares);
 
         return true;
