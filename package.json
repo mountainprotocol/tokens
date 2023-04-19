@@ -1,7 +1,7 @@
 {
   "name": "token-poc",
   "version": "1.0.0",
-  "description": "Mountain Protocol Token Project",
+  "description": "Mountain Protocol Token",
   "main": "index.js",
   "private": true,
   "scripts": {
@@ -25,7 +25,6 @@
     "@openzeppelin/test-helpers": "^0.5.16",
     "dotenv": "^16.0.3",
     "hardhat": "^2.12.6",
-    "hardhat-gas-reporter": "^1.0.9",
     "mocha": "^10.2.0"
   },
   "dependencies": {
