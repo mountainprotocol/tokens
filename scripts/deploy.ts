@@ -13,10 +13,10 @@ const deploy = async () => {
     ethers.utils.formatEther((await deployer.getBalance()))
   );
 
-  const Token = await ethers.getContractFactory("Token");
+  const Token = await ethers.getContractFactory("USDM");
   const token = await upgrades.deployProxy(
     Token,
-    ["Mountain Protocol USD", "USDM", ethers.utils.parseUnits("1")], // 100M
+    ["Mountain Protocol USD", "USDM", ethers.utils.parseUnits("1")],
     { initializer: "initialize", kind: "uups" }
   );
   await token.deployed();
@@ -25,8 +25,8 @@ const deploy = async () => {
 }
 
 const upgrade = async () => {
-  const PROXY_ADDRESS = "0xC8AD5ae7F71de691109CFDDC593Fb17E0Bc03B44";
-  const newContract = await ethers.getContractFactory("TokenV3");
+  const PROXY_ADDRESS = "0x4Dbd756Fd2c7F653BEd8a7B146574DBab0076484";
+  const newContract = await ethers.getContractFactory("USDM");
   console.log("Upgrading contract... %s", PROXY_ADDRESS);
   // It's no necessary to specify proxy's kind since it's inferred from the proxy address
   await upgrades.upgradeProxy(PROXY_ADDRESS, newContract);
