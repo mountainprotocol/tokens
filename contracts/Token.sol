@@ -373,7 +373,7 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
         // TODO: change addrewardmultiplier to setrewardmultiplier
         require(_rewardMultiplier > 0, "Invalid RewardMultiplier");
-        require(_rewardMultiplier < 500000000000000, "Invalid RewardMultiplier"); // 5bps
+        require(_rewardMultiplier < 0.0005 ether, "Invalid RewardMultiplier"); // 5bps
 
         rewardMultiplier = rewardMultiplier.add(_rewardMultiplier);
 
