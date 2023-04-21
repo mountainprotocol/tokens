@@ -366,16 +366,24 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     }
 
     /**
-     * @notice Adds a new reward multiplier to the existing reward multiplier.
+     * @notice Adds the provided interest rate to the current reward multiplier.
      * @dev Only users with ORACLE_ROLE can call this function.
-     * @param _rewardMultiplier The new reward multiplier to be added.
+     * @param _rewardMultiplier The new reward multiplier.
      */
     function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
-        // TODO: change addrewardmultiplier to setrewardmultiplier
-        require(_rewardMultiplier > 0, "Invalid RewardMultiplier");
-        require(_rewardMultiplier < 0.0005 ether, "Invalid RewardMultiplier"); // 5bps
+        require(_rewardMultiplier > 0, "Invalid reward multiplier");
 
-        rewardMultiplier = rewardMultiplier.add(_rewardMultiplier);
+        setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
+    }
+
+    /**
+     * @notice Sets the reward multiplier.
+     * @dev Only users with ORACLE_ROLE can call this function.
+     * @param _rewardMultiplier The new reward multiplier.
+     */
+    function setRewardMultiplier(uint256 _rewardMultiplier) public onlyRole(ORACLE_ROLE) {
+        require(_rewardMultiplier > 1 ether, "Invalid reward multiplier");
+        rewardMultiplier = _rewardMultiplier;
 
         emit RewardMultiplier(rewardMultiplier);
     }
