@@ -195,32 +195,6 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     }
 
     /**
-     * @notice Transfers a specified number of tokens from one address to another.
-     * @dev This is an internal function.
-     * @param from The address from which shares will be transferred.
-     * @param to The address to which shares will be transferred.
-     * @param amount The number of tokens to transfer.
-     */
-    function _transfer(address from, address to, uint256 amount) private {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
-
-        _beforeTokenTransfer(from, to, amount);
-
-        uint256 shares = convertToShares(amount);
-        uint256 fromShares = _shares[from];
-        require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
-        unchecked {
-            _shares[from] = fromShares - shares;
-            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
-            // decrementing then incrementing.
-            _shares[to] += shares;
-        }
-
-        _afterTokenTransfer(from, to, amount);
-    }
-
-    /**
      * @notice Burns a specified number of shares from the given address.
      * @dev This is an internal function.
      * @param account The address from which shares will be burned.
@@ -261,6 +235,46 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
         uint256 shares = convertToShares(amount);
         _burn(from, shares);
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) private view {
+        // Each blacklist check is an SLOAD, which is gas intensive.
+        // We only block sender not receiver, so we don't tax every user
+        require(!isBlacklisted(from), "Address is blacklisted");
+        // Useful for scenarios such as preventing trades until the end of an evaluation
+        // period, or having an emergency switch for freezing all token transfers in the
+        // event of a large bug.
+        require(!paused(), "Transfers not allowed while paused");
+    }
+
+    function _afterTokenTransfer(address from, address to, uint256 amount) private {
+        emit Transfer(from, to, amount);
+    }
+
+    /**
+     * @notice Transfers a specified number of tokens from one address to another.
+     * @dev This is an internal function.
+     * @param from The address from which shares will be transferred.
+     * @param to The address to which shares will be transferred.
+     * @param amount The number of tokens to transfer.
+     */
+    function _transfer(address from, address to, uint256 amount) private {
+        require(from != address(0), "ERC20: transfer from the zero address");
+        require(to != address(0), "ERC20: transfer to the zero address");
+
+        _beforeTokenTransfer(from, to, amount);
+
+        uint256 shares = convertToShares(amount);
+        uint256 fromShares = _shares[from];
+        require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
+        unchecked {
+            _shares[from] = fromShares - shares;
+            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
+            // decrementing then incrementing.
+            _shares[to] += shares;
+        }
+
+        _afterTokenTransfer(from, to, amount);
     }
 
     /**
@@ -332,20 +346,6 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
         return _blacklist[account];
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) private view {
-        // Each blacklist check is an SLOAD, which is gas intensive.
-        // We only block sender not receiver, so we don't tax every user
-        require(!isBlacklisted(from), "Address is blacklisted");
-        // Useful for scenarios such as preventing trades until the end of an evaluation
-        // period, or having an emergency switch for freezing all token transfers in the
-        // event of a large bug.
-        require(!paused(), "Transfers not allowed while paused");
-    }
-
-    function _afterTokenTransfer(address from, address to, uint256 amount) private {
-        emit Transfer(from, to, amount);
-    }
-
     /**
      * @notice Pauses token transfers and other operations.
      * @dev Only the contract owner can call this function. Inherits the _pause function from @openzeppelin/PausableUpgradeable contract.
@@ -363,17 +363,6 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     }
 
     /**
-     * @notice Adds the provided interest rate to the current reward multiplier.
-     * @dev Only users with ORACLE_ROLE can call this function.
-     * @param _rewardMultiplier The new reward multiplier.
-     */
-    function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
-        require(_rewardMultiplier > 0, "Invalid reward multiplier");
-
-        setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
-    }
-
-    /**
      * @notice Sets the reward multiplier.
      * @dev Only users with ORACLE_ROLE can call this function.
      * @param _rewardMultiplier The new reward multiplier.
@@ -383,6 +372,17 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
         rewardMultiplier = _rewardMultiplier;
 
         emit RewardMultiplier(rewardMultiplier);
+    }
+
+    /**
+     * @notice Adds the provided interest rate to the current reward multiplier.
+     * @dev Only users with ORACLE_ROLE can call this function.
+     * @param _rewardMultiplier The new reward multiplier.
+     */
+    function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
+        require(_rewardMultiplier > 0, "Invalid reward multiplier");
+
+        setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
     }
 
     /**
