@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
@@ -16,7 +16,7 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.
 
 // @author: @mattiascaricato
 contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
-    using SafeMathUpgradeable for uint256;
+    using MathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
     string private _name;
@@ -107,8 +107,8 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @param amount The amount of tokens to convert
      * @return The equivalent amount of shares
      */
-    function amountToShares(uint256 amount) public view returns (uint256) {
-        return amount.mul(BASE).div(rewardMultiplier);
+    function convertToShares(uint256 amount) public view returns (uint256) {
+        return amount.mulDiv(BASE, rewardMultiplier, MathUpgradeable.Rounding.Down);
     }
 
     /**
@@ -116,8 +116,8 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @param shares The amount of shares to convert
      * @return The equivalent amount of tokens
      */
-    function sharesToAmount(uint256 shares) public view returns (uint256) {
-        return shares.mul(rewardMultiplier).div(BASE);
+    function convertToAmount(uint256 shares) public view returns (uint256) {
+        return shares.mulDiv(rewardMultiplier, BASE, MathUpgradeable.Rounding.Down);
     }
 
     /**
@@ -133,7 +133,7 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @return The total supply of tokens
      */
     function totalSupply() external view returns (uint256) {
-        return sharesToAmount(_totalShares);
+        return convertToAmount(_totalShares);
     }
 
     /**
@@ -153,7 +153,7 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @return The balance of the specified address
      */
     function balanceOf(address account) external view returns (uint256) {
-        return sharesToAmount(sharesOf(account));
+        return convertToAmount(sharesOf(account));
     }
 
     /**
@@ -167,11 +167,11 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
 
         _beforeTokenTransfer(address(0), to, shares);
 
-        _totalShares = _totalShares.add(shares);
+        _totalShares += shares;
 
         unchecked {
             // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
-            _shares[to] = _shares[to].add(shares);
+            _shares[to] += shares;
         }
 
         _afterTokenTransfer(address(0), to, shares);
@@ -193,7 +193,7 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @param amount The amount of tokens to mint
      */
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
-        uint256 shares = amountToShares(amount);
+        uint256 shares = convertToShares(amount);
         _mint(to, shares);
     }
 
@@ -210,14 +210,14 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
 
         _beforeTokenTransfer(from, to, amount);
 
-        uint256 shares = amountToShares(amount);
+        uint256 shares = convertToShares(amount);
         uint256 fromShares = _shares[from];
         require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
         unchecked {
-            _shares[from] = fromShares.sub(shares);
+            _shares[from] = fromShares - shares;
             // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
             // decrementing then incrementing.
-            _shares[to] = _shares[to].add(shares);
+            _shares[to] += shares;
         }
 
         _afterTokenTransfer(from, to, amount);
@@ -237,9 +237,9 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
         uint256 accountShares = sharesOf(account);
         require(accountShares >= shares, "ERC20: burn amount exceeds balance");
         unchecked {
-            _shares[account] = accountShares.sub(shares);
+            _shares[account] = accountShares - shares;
             // Overflow not possible: amount <= accountBalance <= totalSupply.
-            _totalShares = _totalShares.sub(shares);
+            _totalShares -= shares;
         }
 
         _afterTokenTransfer(account, address(0), shares);
@@ -262,7 +262,7 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @param amount The amount of tokens to burn.
      */
     function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
-        uint256 shares = amountToShares(amount);
+        uint256 shares = convertToShares(amount);
         _burn(from, shares);
     }
 
