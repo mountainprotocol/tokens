@@ -592,8 +592,6 @@ describe("USDM", () => {
       await expect(
         contract.setRewardMultiplier(rewardMultiplier)
       ).to.be.revertedWith("Invalid reward multiplier");
-
-      console.log(await contract.rewardMultiplier());
     });
 
     it("updates the total supply according to the new reward multiplier", async () => {
