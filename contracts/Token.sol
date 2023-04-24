@@ -5,25 +5,22 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
-// TODO: Upgrade Time lock
-
-// @author: @mattiascaricato
-contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
-    using SafeMathUpgradeable for uint256;
+contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
+    using MathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
     string private _name;
     string private _symbol;
-    uint256 private _rewardMultiplier;
     uint256 private _totalShares;
     uint256 private constant BASE = 1e18;
+    uint256 public rewardMultiplier;
 
     mapping (address => uint256) private _shares;
     mapping(address => bool) private _blacklist;
@@ -53,7 +50,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     function initialize(string memory name_, string memory symbol_, uint256 initialShares) external initializer {
         _name = name_;
         _symbol = symbol_;
-        _rewardMultiplier = BASE;
+        rewardMultiplier = BASE;
 
         __Ownable_init();
         __AccessControl_init();
@@ -107,8 +104,8 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @param amount The amount of tokens to convert
      * @return The equivalent amount of shares
      */
-    function amountToShares(uint256 amount) public view returns (uint256) {
-        return amount.mul(BASE).div(rewardMultiplier());
+    function convertToShares(uint256 amount) public view returns (uint256) {
+        return amount.mulDiv(BASE, rewardMultiplier, MathUpgradeable.Rounding.Down);
     }
 
     /**
@@ -116,8 +113,8 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @param shares The amount of shares to convert
      * @return The equivalent amount of tokens
      */
-    function sharesToAmount(uint256 shares) public view returns (uint256) {
-        return shares.mul(rewardMultiplier()).div(BASE);
+    function convertToAmount(uint256 shares) public view returns (uint256) {
+        return shares.mulDiv(rewardMultiplier, BASE, MathUpgradeable.Rounding.Down);
     }
 
     /**
@@ -133,7 +130,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @return The total supply of tokens
      */
     function totalSupply() external view returns (uint256) {
-        return sharesToAmount(_totalShares);
+        return convertToAmount(_totalShares);
     }
 
     /**
@@ -153,7 +150,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @return The balance of the specified address
      */
     function balanceOf(address account) external view returns (uint256) {
-        return sharesToAmount(sharesOf(account));
+        return convertToAmount(sharesOf(account));
     }
 
     /**
@@ -167,11 +164,11 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
 
         _beforeTokenTransfer(address(0), to, shares);
 
-        _totalShares = _totalShares.add(shares);
+        _totalShares += shares;
 
         unchecked {
             // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
-            _shares[to] = _shares[to].add(shares);
+            _shares[to] += shares;
         }
 
         _afterTokenTransfer(address(0), to, shares);
@@ -193,33 +190,8 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @param amount The amount of tokens to mint
      */
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
-        uint256 shares = amountToShares(amount);
+        uint256 shares = convertToShares(amount);
         _mint(to, shares);
-    }
-
-    /**
-     * @notice Transfers a specified number of shares from one address to another.
-     * @dev This is an internal function.
-     * @param from The address from which shares will be transferred.
-     * @param to The address to which shares will be transferred.
-     * @param shares The number of shares to transfer.
-     */
-    function _transferShares(address from, address to, uint256 shares) private {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
-
-        _beforeTokenTransfer(from, to, shares);
-
-        uint256 fromShares = _shares[from];
-        require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
-        unchecked {
-            _shares[from] = fromShares.sub(shares);
-            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
-            // decrementing then incrementing.
-            _shares[to] = _shares[to].add(shares);
-        }
-
-        _afterTokenTransfer(from, to, shares);
     }
 
     /**
@@ -236,9 +208,9 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
         uint256 accountShares = sharesOf(account);
         require(accountShares >= shares, "ERC20: burn amount exceeds balance");
         unchecked {
-            _shares[account] = accountShares.sub(shares);
+            _shares[account] = accountShares - shares;
             // Overflow not possible: amount <= accountBalance <= totalSupply.
-            _totalShares = _totalShares.sub(shares);
+            _totalShares -= shares;
         }
 
         _afterTokenTransfer(account, address(0), shares);
@@ -261,8 +233,48 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @param amount The amount of tokens to burn.
      */
     function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
-        uint256 shares = amountToShares(amount);
+        uint256 shares = convertToShares(amount);
         _burn(from, shares);
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) private view {
+        // Each blacklist check is an SLOAD, which is gas intensive.
+        // We only block sender not receiver, so we don't tax every user
+        require(!isBlacklisted(from), "Address is blacklisted");
+        // Useful for scenarios such as preventing trades until the end of an evaluation
+        // period, or having an emergency switch for freezing all token transfers in the
+        // event of a large bug.
+        require(!paused(), "Transfers not allowed while paused");
+    }
+
+    function _afterTokenTransfer(address from, address to, uint256 amount) private {
+        emit Transfer(from, to, amount);
+    }
+
+    /**
+     * @notice Transfers a specified number of tokens from one address to another.
+     * @dev This is an internal function.
+     * @param from The address from which shares will be transferred.
+     * @param to The address to which shares will be transferred.
+     * @param amount The number of tokens to transfer.
+     */
+    function _transfer(address from, address to, uint256 amount) private {
+        require(from != address(0), "ERC20: transfer from the zero address");
+        require(to != address(0), "ERC20: transfer to the zero address");
+
+        _beforeTokenTransfer(from, to, amount);
+
+        uint256 shares = convertToShares(amount);
+        uint256 fromShares = _shares[from];
+        require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
+        unchecked {
+            _shares[from] = fromShares - shares;
+            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
+            // decrementing then incrementing.
+            _shares[to] += shares;
+        }
+
+        _afterTokenTransfer(from, to, amount);
     }
 
     /**
@@ -278,8 +290,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      */
     function transfer(address to, uint256 amount) external returns (bool) {
         address owner = _msgSender();
-        uint256 shares = amountToShares(amount);
-        _transferShares(owner, to, shares);
+        _transfer(owner, to, amount);
 
         return true;
     }
@@ -288,7 +299,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @notice Blacklists the specified address
      * @param account The address to blacklist
      */
-    function _blacklistAccount(address account) internal onlyRole(BLACKLIST_ROLE) {
+    function _blacklistAccount(address account) internal {
         require(!_blacklist[account], "Address already blacklisted");
         _blacklist[account] = true;
         emit AccountBlacklisted(account);
@@ -298,7 +309,7 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      * @notice Removes the specified address from the blacklist
      * @param account The address to remove from the blacklist
      */
-    function _unblacklistAccount(address account) internal onlyRole(BLACKLIST_ROLE) {
+    function _unblacklistAccount(address account) internal {
         require(_blacklist[account], "Address is not blacklisted");
         _blacklist[account] = false;
         emit AccountUnblacklisted(account);
@@ -335,20 +346,6 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
         return _blacklist[account];
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) private view {
-        // Each blacklist check is an SLOAD, which is gas intensive.
-        // We only block sender not receiver, so we don't tax every user
-        require(!isBlacklisted(from), "Address is blacklisted");
-        // Useful for scenarios such as preventing trades until the end of an evaluation
-        // period, or having an emergency switch for freezing all token transfers in the
-        // event of a large bug.
-        require(!paused(), "Transfers not allowed while paused");
-    }
-
-    function _afterTokenTransfer(address from, address to, uint256 amount) private {
-        emit Transfer(from, to, amount);
-    }
-
     /**
      * @notice Pauses token transfers and other operations.
      * @dev Only the contract owner can call this function. Inherits the _pause function from @openzeppelin/PausableUpgradeable contract.
@@ -366,25 +363,26 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
     }
 
     /**
-     * @notice Returns the current reward multiplier
-     * @return The current reward multiplier
+     * @notice Sets the reward multiplier.
+     * @dev Only users with ORACLE_ROLE can call this function.
+     * @param _rewardMultiplier The new reward multiplier.
      */
-    function rewardMultiplier() public view returns (uint256) {
-        return _rewardMultiplier;
+    function setRewardMultiplier(uint256 _rewardMultiplier) public onlyRole(ORACLE_ROLE) {
+        require(_rewardMultiplier > 1 ether, "Invalid reward multiplier");
+        rewardMultiplier = _rewardMultiplier;
+
+        emit RewardMultiplier(rewardMultiplier);
     }
 
     /**
-     * @notice Adds a new reward multiplier to the existing reward multiplier.
+     * @notice Adds the provided interest rate to the current reward multiplier.
      * @dev Only users with ORACLE_ROLE can call this function.
-     * @param rewardMultiplier_ The new reward multiplier to be added.
+     * @param _rewardMultiplier The new reward multiplier.
      */
-    function addRewardMultiplier(uint256 rewardMultiplier_) external onlyRole(ORACLE_ROLE) {
-        require(rewardMultiplier_ > 0, "Invalid RewardMultiplier");
-        require(rewardMultiplier_ < 500000000000000, "Invalid RewardMultiplier"); // 5bps
+    function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
+        require(_rewardMultiplier > 0, "Invalid reward multiplier");
 
-        _rewardMultiplier = _rewardMultiplier.add(rewardMultiplier_);
-
-        emit RewardMultiplier(_rewardMultiplier);
+        setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
     }
 
     /**
@@ -480,9 +478,8 @@ contract Usdm is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
      */
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         address spender = _msgSender();
-        uint256 shares = amountToShares(amount);
-        _spendAllowance(from, spender, shares);
-        _transferShares(from, to, shares);
+        _spendAllowance(from, spender, amount);
+        _transfer(from, to, amount);
 
         return true;
     }

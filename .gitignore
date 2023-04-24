@@ -389,3 +389,10 @@ artifacts
 
 # Mac
 .DS_Store
+
+# VS Code
+.vscode/*
+
+# Forge
+cache_forge/*
+out/*
