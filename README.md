@@ -46,7 +46,12 @@ npm run test
 
 Coverage
 ```shell
-npx hardhat coverage
+npm run coverage
+```
+
+Linter
+```shell
+npx hardhat check
 ```
 
 Running local node

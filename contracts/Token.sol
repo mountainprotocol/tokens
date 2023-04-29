@@ -12,7 +12,15 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
-contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
+contract USDM is
+    IERC20Upgradeable,
+    OwnableUpgradeable,
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    UUPSUpgradeable,
+    IERC20PermitUpgradeable,
+    EIP712Upgradeable
+{
     using MathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
@@ -348,7 +356,8 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
 
     /**
      * @notice Pauses token transfers and other operations.
-     * @dev Only the contract owner can call this function. Inherits the _pause function from @openzeppelin/PausableUpgradeable contract.
+     * @dev Only the contract owner can call this function.
+     * @dev Inherits the _pause function from @openzeppelin/PausableUpgradeable contract.
      */
     function pause() external onlyOwner {
         super._pause();
@@ -356,7 +365,8 @@ contract USDM is IERC20Upgradeable, OwnableUpgradeable, AccessControlUpgradeable
 
     /**
      * @notice Unpauses token transfers and other operations.
-     * @dev Only the contract owner can call this function. Inherits the _unpause function from @openzeppelin/PausableUpgradeable contract.
+     * @dev Only the contract owner can call this function.
+     * @dev Inherits the _unpause function from @openzeppelin/PausableUpgradeable contract.
      */
     function unpause() external onlyOwner {
         super._unpause();

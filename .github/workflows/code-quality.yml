@@ -37,11 +37,15 @@ jobs:
           node-version: 18
           # Exclude openzeppelin contracts analysis and block-timestamp low issue from OZ's permit implementation (ERC2612)
           slither-args: --filter-paths "openzeppelin"
-  # Lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Run linter
-  #       uses:
+  Lint:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run linter
+        run: npm run lint
 
   # Coverage:
   #   runs-on: ubuntu-latest

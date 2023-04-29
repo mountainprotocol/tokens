@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "test": "NODE_ENV=test hardhat test",
-    "coverage": "NODE_ENV=test hardhat coverage"
+    "coverage": "NODE_ENV=test hardhat coverage",
+    "lint": "npx hardhat check"
   },
   "repository": {
     "type": "git",
