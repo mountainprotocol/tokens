@@ -4,6 +4,7 @@ This smart contract implements a custom rebasing ERC-20 token with additional fe
 
 ## Features
 
+- OZ Access Control
 - Rebasing token mechanism
 - Minting and burning functionality
 - Blacklisting addresses
@@ -22,11 +23,17 @@ This project uses Hardhat. It includes a contract, its tests, and a script that 
 
 ### Installation
 
-Install hardhat
-
+1. Install dependencies
 ```shell
-npm install -g hardhat
+npm i
 ```
+
+2. Copy ENV file
+```shell
+cp .env.example .env
+```
+
+3. Replace ENV variables with PK and API Keys
 
 ### Usage
 
@@ -34,33 +41,33 @@ Try running some of the following tasks:
 
 Testing
 ```shell
-hh test
+npm run test
 ```
 
 Coverage
 ```shell
-hh coverage
+npx hh coverage
 ```
 
 Running local node
 ```shell
-hh node
+npx hh node
 ```
 
 Compile
 ```shell
-hh compile
+npx hh compile
 ```
 
 Deploying and contract verification
 ```shell
-hh run scripts/deploy.ts--network goerli
-hh verify --network goerli <contact-address>
+npx hh run scripts/deploy.ts--network goerli
+npx hh verify --network goerli <contact-address>
 ```
 
 Help
 ```shell
-hh help
+npx hh help
 ```
 
 ### Functions
