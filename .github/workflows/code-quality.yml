@@ -21,6 +21,8 @@ jobs:
               run: npm test
             - name: Run Static Analysis (Slither)
               uses: crytic/slither-action@v0.3.0
+              with:
+                node-version: 18
               # Run even if previous steps have failed
               if: success() || failure()
 
