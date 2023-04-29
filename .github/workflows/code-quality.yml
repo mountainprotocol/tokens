@@ -1,31 +1,60 @@
 name: Code Quality
+
+# name: checks
+# concurrency:
+#   group: checks-${{ github.ref }}
+#   cancel-in-progress: true
+
 run-name: ${{ github.ref_name }} by ${{ github.actor }}
 on: [push]
 jobs:
-    Tests:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v3
-            - name: Install Node.js
-              uses: actions/setup-node@v3
-              with:
-                node-version: 'lts/Hydrogen'
-            - name: Install dependencies
-              run: npm install
-            # - name: Copy ENV file
-            #   run: cp .env.example .env
-            # - name: Replace ENV variables
-            #   run: sed -i "s/DB_HOST=.*/DB_HOST=localhost/" .env
-            - name: Run tests
-              run: npm test
-    Static-Analysis:
-        runs-on: ubuntu-latest
-        steps:
-          - name: Run Static Analysis (Slither)
-            uses: crytic/slither-action@v0.3.0
-            with:
-              node-version: 18
+  Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 'lts/Hydrogen'
+      - name: Install dependencies
+        run: npm install
+      # - name: Copy ENV file
+      #   run: cp .env.example .env
+      # - name: Replace ENV variables
+      #   run: sed -i "s/DB_HOST=.*/DB_HOST=localhost/" .env
+      - name: Run tests
+        run: npm test
+  Static-Analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run slither
+        uses: crytic/slither-action@v0.3.0
+        with:
+          fail-on: high
+          node-version: 18
+          target: contracts/
+  # Lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Run linter
+  #       uses:
+
+  # Coverage:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
+  #     - name: Set up environment
+  #       uses: ./.github/actions/setup
+  #     - run: npm run coverage
+  #       env:
+  #         NODE_OPTIONS: --max_old_space_size=4096
+  #     - uses: codecov/codecov-action@v3
+  #       with:
+  #         token: ${{ secrets.CODECOV_TOKEN }}
 
 ## Run coverage and do not allow to merge if coverage is less than the previous one
     # Coverage:
