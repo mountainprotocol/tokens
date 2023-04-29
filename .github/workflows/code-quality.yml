@@ -1,14 +1,12 @@
-name: Code Quality
-
-# name: checks
-# concurrency:
-#   group: checks-${{ github.ref }}
-#   cancel-in-progress: true
+name: code-quality
 
 run-name: ${{ github.event.head_commit.message }} on ${{ github.ref_name }}
 on: [push]
+concurrency:
+  group: code-quality-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  Tests:
+  tests:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -23,7 +21,7 @@ jobs:
         run: npm install
       - name: Run tests
         run: npm test
-  Static-Analysis:
+  static-analysis:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -37,7 +35,7 @@ jobs:
           node-version: 18
           # Exclude openzeppelin contracts analysis and block-timestamp low issue from OZ's permit implementation (ERC2612)
           slither-args: --filter-paths "openzeppelin"
-  Lint:
+  lint:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -53,7 +51,7 @@ jobs:
       - name: Run linter
         run: npm run lint
 
-  # Coverage:
+  # coverage:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - name: Checkout code
