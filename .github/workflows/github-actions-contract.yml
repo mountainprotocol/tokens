@@ -19,6 +19,8 @@ jobs:
             #   run: sed -i "s/DB_HOST=.*/DB_HOST=localhost/" .env
             - name: Run tests
               run: npm test
+            - name: Run Static Analysis (Slither)
+              uses: crytic/slither-action@v0.3.0
 
 ## Run coverage and do not allow to merge if coverage is less than the previous one
     # Coverage:
