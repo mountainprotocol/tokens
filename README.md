@@ -46,28 +46,28 @@ npm run test
 
 Coverage
 ```shell
-npx hh coverage
+npx hardhat coverage
 ```
 
 Running local node
 ```shell
-npx hh node
+npx hardhat node
 ```
 
 Compile
 ```shell
-npx hh compile
+npx hardhat compile
 ```
 
 Deploying and contract verification
 ```shell
-npx hh run scripts/deploy.ts--network goerli
-npx hh verify --network goerli <contact-address>
+npx hardhat run scripts/deploy.ts--network goerli
+npx hardhat verify --network goerli <contact-address>
 ```
 
 Help
 ```shell
-npx hh help
+npx hardhat help
 ```
 
 ### Functions
