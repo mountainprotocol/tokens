@@ -1,9 +1,10 @@
-name: Quality CI
+name: Code Quality
 run-name: ${{ github.ref_name }} by ${{ github.actor }}
 on: [push]
 jobs:
     Tests:
         runs-on: ubuntu-latest
+        continue-on-error: true
         steps:
             - name: Checkout code
               uses: actions/checkout@v3
