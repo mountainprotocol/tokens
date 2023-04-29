@@ -5,7 +5,7 @@ name: Code Quality
 #   group: checks-${{ github.ref }}
 #   cancel-in-progress: true
 
-run-name: ${{ github.ref_name }} by ${{ github.actor }}
+run-name: ${{ github.event.head_commit.message }} on ${{ github.ref_name }} by ${{ github.actor }}
 on: [push]
 jobs:
   Tests:
@@ -34,7 +34,7 @@ jobs:
           fail-on: low
           node-version: 18
           # Exclude openzeppelin contracts analysis and block-timestamp low issue from OZ's permit implementation (ERC2612)
-          slither-args: --filter-paths "openzeppelin --exclude block-timestamp."
+          slither-args: --filter-paths "openzeppelin --exclude block-timestamp"
   # Lint:
   #   runs-on: ubuntu-latest
   #   steps:
