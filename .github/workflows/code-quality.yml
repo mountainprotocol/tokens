@@ -4,7 +4,7 @@ on: [push]
 jobs:
     Tests:
         runs-on: ubuntu-latest
-        continue-on-error: true
+        if: always()
         steps:
             - name: Checkout code
               uses: actions/checkout@v3
