@@ -21,10 +21,6 @@ jobs:
           node-version: 'lts/Hydrogen'
       - name: Install dependencies
         run: npm install
-      # - name: Copy ENV file
-      #   run: cp .env.example .env
-      # - name: Replace ENV variables
-      #   run: sed -i "s/DB_HOST=.*/DB_HOST=localhost/" .env
       - name: Run tests
         run: npm test
   Static-Analysis:
@@ -35,9 +31,10 @@ jobs:
       - name: Run slither
         uses: crytic/slither-action@v0.3.0
         with:
-          fail-on: medium
+          fail-on: low
           node-version: 18
-          slither-args: --filter-paths "openzeppelin"
+          # Exclude openzeppelin contracts analysis and block-timestamp low issue from OZ's permit implementation (ERC2612)
+          slither-args: --filter-paths "openzeppelin --exclude block-timestamp."
   # Lint:
   #   runs-on: ubuntu-latest
   #   steps:
