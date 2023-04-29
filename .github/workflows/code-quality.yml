@@ -48,6 +48,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 'lts/Hydrogen'
+      - name: Install dependencies
+        run: npm install
       - name: Run linter
         run: npm run lint
 
