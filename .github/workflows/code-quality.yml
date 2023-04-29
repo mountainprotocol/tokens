@@ -4,7 +4,6 @@ on: [push]
 jobs:
     Tests:
         runs-on: ubuntu-latest
-        if: always()
         steps:
             - name: Checkout code
               uses: actions/checkout@v3
@@ -22,6 +21,8 @@ jobs:
               run: npm test
             - name: Run Static Analysis (Slither)
               uses: crytic/slither-action@v0.3.0
+              # Run even if previous steps have failed
+              if: success() || failure()
 
 ## Run coverage and do not allow to merge if coverage is less than the previous one
     # Coverage:
