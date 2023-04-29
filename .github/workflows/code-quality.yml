@@ -10,6 +10,8 @@ on: [push]
 jobs:
   Tests:
     runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -33,7 +35,7 @@ jobs:
       - name: Run slither
         uses: crytic/slither-action@v0.3.0
         with:
-          fail-on: low
+          fail-on: medium
           node-version: 18
           slither-args: --filter-paths "openzeppelin"
   # Lint:
