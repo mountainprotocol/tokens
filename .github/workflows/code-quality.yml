@@ -1,5 +1,4 @@
 name: code-quality
-
 run-name: ${{ github.event.head_commit.message }} on ${{ github.ref_name }}
 on: [push]
 concurrency:
