@@ -1,0 +1,31 @@
+name: Quality CI
+run-name: ${{ github.ref_name }} by ${{ github.actor }}
+on: [push]
+jobs:
+    Tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+            - name: Install dependencies
+              run: npm install
+            # - name: Copy ENV file
+            #   run: cp .env.example .env
+            # - name: Replace ENV variables
+            #   run: sed -i "s/DB_HOST=.*/DB_HOST=localhost/" .env
+            - name: Run tests
+              run: npm test
+
+## Run coverage and do not allow to merge if coverage is less than the previous one
+    # Coverage:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - uses: actions/checkout@v2
+    #         - name: Install dependencies
+    #           run: npm install
+    #         - name: Run tests
+    #           run: npm test
+    #         - name: Run coverage
+    #           run: npm run coverage
+    #         - name: Check coverage
+    #           run:
