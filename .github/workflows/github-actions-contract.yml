@@ -10,7 +10,7 @@ jobs:
             - name: Install Node.js
               uses: actions/setup-node@v2
               with:
-                node-version: 'ts/hydrogen'
+                node-version: 'lts/hydrogen'
             - name: Install dependencies
               run: npm install
             # - name: Copy ENV file
