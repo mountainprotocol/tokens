@@ -33,9 +33,9 @@ jobs:
       - name: Run slither
         uses: crytic/slither-action@v0.3.0
         with:
-          fail-on: high
+          fail-on: low
           node-version: 18
-          target: contracts/
+          slither-args: --filter-paths "openzeppelin"
   # Lint:
   #   runs-on: ubuntu-latest
   #   steps:
