@@ -21,11 +21,6 @@ const {
 const isTestEnv = NODE_ENV === 'test';
 const gasReport = REPORT_GAS === 'true';
 
-if (!isTestEnv && !GOERLI_PRIVATE_KEY) {
-  console.error('Environment variables are not configured (See README.md)');
-  process.exit(1);
-}
-
 const testConfig: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   networks: {
@@ -37,7 +32,11 @@ const gasReporterConfig = {
   enabled: REPORT_GAS === 'true',
   coinmarketcap: COIN_MARKETCAP_API_KEY,
   gasPrice: 20,
-}
+};
+
+const etherscanConfig = {
+  apiKey: ETHERSCAN_API_KEY,
+};
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -49,18 +48,18 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  etherscan: {
-    apiKey: ETHERSCAN_API_KEY,
-  },
+  etherscan: ETHERSCAN_API_KEY ? etherscanConfig : {},
   defaultNetwork: 'goerli',
   networks: {
     goerli: {
       url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_GOERLI_API_KEY}`,
-      accounts: [GOERLI_PRIVATE_KEY],
+      // Only add account if the PK is provided
+      ...(GOERLI_PRIVATE_KEY ? { accounts: [GOERLI_PRIVATE_KEY] } : {}),
     },
     // mainnet: {
     //   url: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_MAINNET_API_KEY}`,
-    //   accounts: [MAINNET_PRIVATE_KEY || undefined],
+    // Only add account if the PK is provided
+    // ...(MAINNET_PRIVATE_KEY ? { accounts: [MAINNET_PRIVATE_KEY] } : {}),
     // },
     hardhat: {
       chainId: 1337 // We set 1337 to make interacting with MetaMask simpler

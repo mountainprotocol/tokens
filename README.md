@@ -33,7 +33,7 @@ npm i
 cp .env.example .env
 ```
 
-3. Replace ENV variables with PK and API Keys
+3. Replace ENV variables with the values as needed
 
 ### Usage
 
