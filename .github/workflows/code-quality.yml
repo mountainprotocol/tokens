@@ -14,10 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/setup
-      - name: Print cache contents
-        run: ls -al ~/.npm
-      - name: Print node-modules
-        run: ls -al ./node_modules
       - name: Run tests
         run: npm test
   static-analysis:
