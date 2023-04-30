@@ -1,0 +1,57 @@
+name: code-quality
+run-name: ${{ github.event.head_commit.message }} on ${{ github.ref_name }}
+on: [push]
+concurrency:
+  group: code-quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      REPORT_GAS: true
+      COIN_MARKETCAP_API_KEY: ${{ secrets.COIN_MARKETCAP_API_KEY }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup
+      - name: Run tests
+        run: npm test
+  static-analysis:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run slither
+        uses: crytic/slither-action@v0.3.0
+        with:
+          # CI will fail if any issue with medium severity or above is found
+          fail-on: medium
+          node-version: 18
+          # Exclude openzeppelin contracts analysis and block-timestamp low issue from OZ's permit implementation (ERC2612)
+          slither-args: --filter-paths "openzeppelin"
+  lint:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup
+      - name: Run linter
+        run: npm run lint
+  coverage:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup
+      - name: Run coverage
+        run: npm run coverage
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        # Always push coverage regardless of test result
+        if: success() || failure()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

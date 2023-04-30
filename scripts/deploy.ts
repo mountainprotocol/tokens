@@ -13,15 +13,15 @@ const deploy = async () => {
     ethers.utils.formatEther((await deployer.getBalance()))
   );
 
-  const Token = await ethers.getContractFactory("USDM");
-  const token = await upgrades.deployProxy(
-    Token,
+  const USDM = await ethers.getContractFactory("USDM");
+  const usdm = await upgrades.deployProxy(
+    USDM,
     ["Mountain Protocol USD", "USDM", ethers.utils.parseUnits("1")],
     { initializer: "initialize", kind: "uups" }
   );
-  await token.deployed();
+  await usdm.deployed();
 
-  console.log("Contract address: %s", token.address);
+  console.log("Contract address: %s", usdm.address);
 }
 
 const upgrade = async () => {
