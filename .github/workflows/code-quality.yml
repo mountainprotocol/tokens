@@ -30,6 +30,7 @@ jobs:
       - name: Run slither
         uses: crytic/slither-action@v0.3.0
         with:
+          # CI will fail if any issue with medium severity or above is found
           fail-on: medium
           node-version: 18
           # Exclude openzeppelin contracts analysis and block-timestamp low issue from OZ's permit implementation (ERC2612)
@@ -49,31 +50,20 @@ jobs:
         run: npm install
       - name: Run linter
         run: npm run lint
-
-  # coverage:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v3
-  #     - name: Set up environment
-  #       uses: ./.github/actions/setup
-  #     - run: npm run coverage
-  #       env:
-  #         NODE_OPTIONS: --max_old_space_size=4096
-  #     - uses: codecov/codecov-action@v3
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-
-## Run coverage and do not allow to merge if coverage is less than the previous one
-    # Coverage:
-    #     runs-on: ubuntu-latest
-    #     steps:
-    #         - uses: actions/checkout@v2
-    #         - name: Install dependencies
-    #           run: npm install
-    #         - name: Run tests
-    #           run: npm test
-    #         - name: Run coverage
-    #           run: npm run coverage
-    #         - name: Check coverage
-    #           run:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 'lts/Hydrogen'
+      - name: Install dependencies
+        run: npm install
+      - name: Run coverage
+        run: npm run coverage
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
