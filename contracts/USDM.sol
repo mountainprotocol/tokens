@@ -328,7 +328,7 @@ contract USDM is
      * @dev This function can only be called by an account with the BLACKLIST_ROLE
      * @param addresses An array of addresses to be blacklisted
      */
-    function blacklistAccounts(address[] calldata addresses) external onlyRole(BLACKLIST_ROLE) {
+    function blacklistAccounts(address[] calldata addresses) external {
         for (uint256 i = 0; i < addresses.length; i++) {
             _blacklistAccount(addresses[i]);
         }
@@ -339,7 +339,7 @@ contract USDM is
      * @dev This function can only be called by an account with the BLACKLIST_ROLE
      * @param addresses An array of addresses to be removed from the blacklist
      */
-    function unblacklistAccounts(address[] calldata addresses) external onlyRole(BLACKLIST_ROLE) {
+    function unblacklistAccounts(address[] calldata addresses) external {
         for (uint256 i = 0; i < addresses.length; i++) {
             _unblacklistAccount(addresses[i]);
         }

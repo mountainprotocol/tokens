@@ -65,6 +65,7 @@ jobs:
         run: npm run coverage
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
+        # Always push coverage regardless of test result
         if: success() || failure()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
