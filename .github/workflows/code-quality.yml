@@ -18,8 +18,17 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 'lts/Hydrogen'
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
       - name: Run tests
         run: npm test
   static-analysis:
@@ -48,8 +57,17 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 'lts/Hydrogen'
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
       - name: Run linter
         run: npm run lint
   coverage:
@@ -63,8 +81,17 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 'lts/Hydrogen'
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
       - name: Run coverage
         run: npm run coverage
       - name: Upload coverage reports to Codecov
