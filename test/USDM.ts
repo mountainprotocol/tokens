@@ -230,27 +230,27 @@ describe("USDM", () => {
       );
     });
 
-    // it("does not add a reward multiplier without oracle role", async () => {
-    //   const { contract, owner } = await loadFixture(deployUSDMFixture);
+    it("does not add a reward multiplier without oracle role", async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-    //   await expect(
-    //     contract.addRewardMultiplier(1)
-    //   ).to.be.revertedWith(
-    //     `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`
-    //   );
-    // });
+      await expect(
+        contract.addRewardMultiplier(1)
+      ).to.be.revertedWith(
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`
+      );
+    });
 
-    // it("adds a reward multiplier with oracle role", async () => {
-    //   const { contract, owner } = await loadFixture(deployUSDMFixture);
+    it("adds a reward multiplier with oracle role", async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-    //   await contract.grantRole(roles.ORACLE, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
 
-    //   await expect(
-    //     contract.addRewardMultiplier(1)
-    //   ).to.not.be.revertedWith(
-    //     `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`
-    //   );
-    // });
+      await expect(
+        contract.addRewardMultiplier(1)
+      ).to.not.be.revertedWith(
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`
+      );
+    });
 
     it("does not blacklist without blacklist role", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
