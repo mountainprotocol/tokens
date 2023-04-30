@@ -10,6 +10,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       REPORT_GAS: true
+      COIN_MARKETCAP_API_KEY: ${{ secrets.COIN_MARKETCAP_API_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
