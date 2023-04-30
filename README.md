@@ -51,7 +51,7 @@ npm run coverage
 
 Linter
 ```shell
-npx hardhat check
+npm run lint
 ```
 
 Running local node
