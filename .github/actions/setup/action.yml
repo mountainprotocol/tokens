@@ -12,9 +12,8 @@ runs:
         id: npm-cache
         with:
           path: ./node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          key: ${{ runner.os }}-npm-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
         shell: bash
+        if: steps.npm-cache.outputs.cache-hit != 'true'
