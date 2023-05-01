@@ -71,6 +71,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - run: ls -la ${{ github.workspace }}
+      - run: ls -la /github/workspace/
       - name: Run Mythril Analysis
         uses: docker://mythril/myth
         with:
