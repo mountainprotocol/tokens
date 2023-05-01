@@ -72,8 +72,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - run: ls -la ${{ github.workspace }}
-      - run: ls -la /github/workspace/
       - name: Run Mythril Analysis
         uses: docker://mythril/myth
         with:
-          args: analyze /github/workspace/contracts/* -t 40 --execution-timeout 60 --solc-json /github/workspace/solc.json --solv 0.8.19
+          args: analyze contracts/* -t 40 --execution-timeout 60 --solc-json solc.json --solv 0.8.19
