@@ -24,14 +24,16 @@ This project uses Hardhat. It includes a contract, its tests, and a script that 
 ### Installation
 
 1. Install dependencies
-```shell
-npm i
-```
+
+    ```shell
+    npm i
+    ```
 
 2. Copy ENV file
-```shell
-cp .env.example .env
-```
+
+    ```shell
+    cp .env.example .env
+    ```
 
 3. Replace ENV variables with the values as needed
 
@@ -40,37 +42,44 @@ cp .env.example .env
 Try running some of the following tasks:
 
 Testing
+
 ```shell
 npm run test
 ```
 
 Coverage
+
 ```shell
 npm run coverage
 ```
 
 Linter
+
 ```shell
 npm run lint
 ```
 
 Running local node
+
 ```shell
 npx hardhat node
 ```
 
 Compile
+
 ```shell
 npx hardhat compile
 ```
 
 Deploying and contract verification
+
 ```shell
 npx hardhat run scripts/deploy.ts--network goerli
 npx hardhat verify --network goerli <contact-address>
 ```
 
 Help
+
 ```shell
 npx hardhat help
 ```
@@ -106,7 +115,6 @@ npx hardhat help
 - `AddressUnBlacklisted(address indexed addr)`: Emitted when an address is removed from the blacklist.
 - `RewardMultiplier(uint256 indexed addr)`: Emitted when the reward multiplier has changed.
 - `Transfer(from indexed addr, to uint256, amount uint256)`: Emitted transfering tokens.
-
 
 #### Roles
 
