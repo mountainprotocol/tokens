@@ -65,3 +65,13 @@ jobs:
         with:
           check_filenames: true
           skip: package-lock.json, .git
+
+  symbol-execution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Run Mythril Analysis
+        uses: docker://mythril/myth
+        with:
+          args: myth analyze ./contracts/* -t 40 --execution-timeout 60 --solc-json solc.json --solv 0.8.19
