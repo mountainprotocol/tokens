@@ -114,7 +114,7 @@ npx hardhat help
 - `AddressBlacklisted(address indexed addr)`: Emitted when an address is blacklisted.
 - `AddressUnBlacklisted(address indexed addr)`: Emitted when an address is removed from the blacklist.
 - `RewardMultiplier(uint256 indexed addr)`: Emitted when the reward multiplier has changed.
-- `Transfer(from indexed addr, to uint256, amount uint256)`: Emitted transfering tokens.
+- `Transfer(from indexed addr, to uint256, amount uint256)`: Emitted when transferring tokens.
 
 #### Roles
 

@@ -789,7 +789,7 @@ describe("USDM", () => {
       ).to.equal(mintAmount);
     });
 
-    it("does not allow minting to null adress", async () => {
+    it("does not allow minting to null address", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -1025,7 +1025,7 @@ describe("USDM", () => {
       ).to.emit(contract, "Approval").withArgs(from, to, amount - 1);
     });
 
-    it("reverts when owner does not have enough blanace", async () => {
+    it("reverts when owner does not have enough balance", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const from = owner.address;
       const to = acc1.address;
