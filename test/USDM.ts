@@ -623,7 +623,7 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const rewardMultiplier = toBaseUnit(1); // 1 equals to 100%
+      const rewardMultiplier = toBaseUnit(0.99); // 1 equals to 100%
 
       await expect(
         contract.setRewardMultiplier(rewardMultiplier)

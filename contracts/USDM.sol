@@ -55,7 +55,7 @@ contract USDM is
     function initialize(string memory name_, string memory symbol_, uint256 initialShares) external initializer {
         _name = name_;
         _symbol = symbol_;
-        rewardMultiplier = BASE;
+        _setRewardMultiplier(BASE);
 
         __AccessControl_init();
         __Pausable_init();
@@ -370,14 +370,23 @@ contract USDM is
 
     /**
      * @notice Sets the reward multiplier.
-     * @dev Only users with ORACLE_ROLE can call this function.
+     * @dev This is an internal function.
      * @param _rewardMultiplier The new reward multiplier.
      */
-    function setRewardMultiplier(uint256 _rewardMultiplier) public onlyRole(ORACLE_ROLE) {
-        require(_rewardMultiplier > 1 ether, "Invalid reward multiplier");
+    function _setRewardMultiplier(uint256 _rewardMultiplier) private {
+        require(_rewardMultiplier >= 1 ether, "Invalid reward multiplier");
         rewardMultiplier = _rewardMultiplier;
 
         emit RewardMultiplier(rewardMultiplier);
+    }
+
+    /**
+     * @notice Sets the reward multiplier.
+     * @dev Only users with ORACLE_ROLE can call this function.
+     * @param _rewardMultiplier The new reward multiplier.
+     */
+    function setRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
+        _setRewardMultiplier(_rewardMultiplier);
     }
 
     /**
@@ -388,7 +397,7 @@ contract USDM is
     function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
         require(_rewardMultiplier > 0, "Invalid reward multiplier");
 
-        setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
+        _setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
     }
 
     /**
