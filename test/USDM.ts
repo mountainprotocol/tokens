@@ -14,7 +14,8 @@ const roles = {
   BURNER: keccak256(toUtf8Bytes("BURNER_ROLE")),
   BLACKLIST: keccak256(toUtf8Bytes("BLACKLIST_ROLE")),
   ORACLE: keccak256(toUtf8Bytes("ORACLE_ROLE")),
-  UPGRADER: keccak256(toUtf8Bytes("UPGRADER_ROLE")),
+  UPGRADE: keccak256(toUtf8Bytes("UPGRADE_ROLE")),
+  PAUSE: keccak256(toUtf8Bytes("PAUSE_ROLE")),
 }
 
 describe("USDM", () => {
@@ -39,6 +40,8 @@ describe("USDM", () => {
     return { contract, owner, acc1, acc2 };
   }
 
+
+  // TODO: fix decimal presition issue using an assert with a range
   describe("Deployment", () => {
     it("has a name", async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
@@ -58,10 +61,12 @@ describe("USDM", () => {
       expect(await contract.decimals()).to.be.equal(18);
     });
 
-    it("has the right owner", async () => {
+    it("grants admin role to deployer", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      expect(await contract.owner()).to.equal(owner.address);
+      expect(
+        await contract.hasRole(await contract.DEFAULT_ADMIN_ROLE(), owner.address)
+      ).to.equal(true);
     });
 
     it("returns the total shares", async () => {
@@ -77,24 +82,16 @@ describe("USDM", () => {
       expect(await contract.totalSupply()).to.equal(totalShares);
     });
 
-    it("assigns the initial total shares to owner", async () => {
+    it("assigns the initial total shares to deployer", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       expect(await contract.sharesOf(owner.address)).to.equal(totalShares);
     });
 
-    it("assigns the initial balance to the owner", async () => {
+    it("assigns the initial balance to the deployer", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       expect( await contract.balanceOf(owner.address)).to.equal(totalShares);
-    });
-
-    it("grants admin role to owner", async () => {
-      const { contract, owner } = await loadFixture(deployUSDMFixture);
-
-      expect(
-        await contract.hasRole(await contract.DEFAULT_ADMIN_ROLE(), owner.address)
-      ).to.equal(true);
     });
   });
 
@@ -296,69 +293,74 @@ describe("USDM", () => {
       );
     });
 
-    it("pauses when admin", async () => {
-      const { contract } = await loadFixture(deployUSDMFixture);
+    it("pauses when pause role", async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
+
+      await contract.grantRole(roles.PAUSE, owner.address);
 
       await expect(
         await contract.pause()
       ).to.not.be.revertedWith(
-        "Ownable: caller is not the owner"
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.PAUSE}`
       );
     });
 
-    it("does not pause without admin", async () => {
+    it("does not pause without pause role", async () => {
       const { contract, acc1 } = await loadFixture(deployUSDMFixture);
 
       await expect(
         contract.connect(acc1).pause()
       ).to.be.revertedWith(
-        "Ownable: caller is not the owner"
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.PAUSE}`
       );
     });
 
-    it("unpauses when admin", async () => {
-      const { contract } = await loadFixture(deployUSDMFixture);
+    it("unpauses when pause role", async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
+
+      await contract.grantRole(roles.PAUSE, owner.address);
 
       await contract.pause();
 
       await expect(
         await contract.unpause()
       ).to.not.be.revertedWith(
-        "Ownable: caller is not the owner"
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.PAUSE}`
       );
     });
 
-    it("does not unpause without admin", async () => {
-      const { contract, acc1 } = await loadFixture(deployUSDMFixture);
+    it("does not unpause without pause role", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
+      await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
       await expect(
         contract.connect(acc1).unpause()
       ).to.be.revertedWith(
-        "Ownable: caller is not the owner"
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.PAUSE}`
       );
     });
 
-    it("does not upgrade without upgrader", async () => {
+    it("does not upgrade without upgrade role", async () => {
       const { contract, acc1 } = await loadFixture(deployUSDMFixture);
 
       await expect(
         contract.connect(acc1).upgradeTo(AddressZero)
       ).to.be.revertedWith(
-        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.UPGRADER}`
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.UPGRADE}`
       );
     });
 
-    it("upgrades with upgrader role", async () => {
+    it("upgrades with upgrade role", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.UPGRADER, acc1.address);
+      await contract.grantRole(roles.UPGRADE, acc1.address);
 
       await expect(
         contract.connect(acc1).upgradeTo(AddressZero)
       ).to.not.be.revertedWith(
-        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.UPGRADER}`
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.UPGRADE}`
       );
     });
   });
@@ -489,6 +491,9 @@ describe("USDM", () => {
       const tokensAmount = toBaseUnit(10);
 
       await contract.grantRole(roles.MINTER, owner.address);
+      await contract.grantRole(roles.PAUSE, owner.address);
+      await contract.pause();
+      await contract.unpause();
 
       await expect(
         contract.mint(acc1.address, tokensAmount)
@@ -500,6 +505,7 @@ describe("USDM", () => {
       const tokensAmount = toBaseUnit(10);
 
       await contract.grantRole(roles.MINTER, owner.address);
+      await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
       await expect(
@@ -512,6 +518,9 @@ describe("USDM", () => {
       const tokensAmount = toBaseUnit(10);
 
       await contract.grantRole(roles.BURNER, owner.address);
+      await contract.grantRole(roles.PAUSE, owner.address);
+      await contract.pause();
+      await contract.unpause();
 
       await expect(
         contract.burn(owner.address, tokensAmount)
@@ -523,6 +532,7 @@ describe("USDM", () => {
       const tokensAmount = toBaseUnit(10);
 
       await contract.grantRole(roles.BURNER, owner.address);
+      await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
       await expect(
@@ -531,8 +541,12 @@ describe("USDM", () => {
     });
 
     it("allows transfers when unpaused", async () => {
-      const { contract, acc1 } = await loadFixture(deployUSDMFixture);
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const tokensAmount = toBaseUnit(10);
+
+      await contract.grantRole(roles.PAUSE, owner.address);
+      await contract.pause();
+      await contract.unpause();
 
       await expect(
         contract.transfer(acc1.address, tokensAmount)
@@ -540,9 +554,10 @@ describe("USDM", () => {
     });
 
     it("does not allow transfers when paused", async () => {
-      const { contract, acc1 } = await loadFixture(deployUSDMFixture);
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const tokensAmount = toBaseUnit(10);
 
+      await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
       await expect(
