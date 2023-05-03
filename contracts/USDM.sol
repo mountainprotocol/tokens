@@ -4,7 +4,6 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
@@ -19,7 +18,6 @@ contract USDM is
     IERC20PermitUpgradeable,
     EIP712Upgradeable
 {
-    using MathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
     string private _name;
@@ -111,7 +109,7 @@ contract USDM is
      * @return The equivalent amount of shares
      */
     function convertToShares(uint256 amount) public view returns (uint256) {
-        return amount.mulDiv(BASE, rewardMultiplier, MathUpgradeable.Rounding.Down);
+        return (amount * BASE) / rewardMultiplier;
     }
 
     /**
@@ -120,7 +118,7 @@ contract USDM is
      * @return The equivalent amount of tokens
      */
     function convertToAmount(uint256 shares) public view returns (uint256) {
-        return shares.mulDiv(rewardMultiplier, BASE, MathUpgradeable.Rounding.Down);
+        return (shares * rewardMultiplier) / BASE;
     }
 
     /**
