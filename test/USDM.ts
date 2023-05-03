@@ -93,7 +93,7 @@ describe("USDM", () => {
     });
 
     it("sets initial reward multiplier to 100%", async () => {
-      const { contract, owner } = await loadFixture(deployUSDMFixture);
+      const { contract } = await loadFixture(deployUSDMFixture);
 
       expect( await contract.rewardMultiplier()).to.equal(toBaseUnit(1)); // 1 equals to 100%
     });
@@ -357,7 +357,7 @@ describe("USDM", () => {
     });
 
     it("upgrades with upgrade role", async () => {
-      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const { contract, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.UPGRADE, acc1.address);
 
@@ -911,7 +911,7 @@ describe("USDM", () => {
 
   describe("Approve", () => {
     it("reverts when spender is the zero address", async () => {
-      const { contract, owner } = await loadFixture(deployUSDMFixture);
+      const { contract } = await loadFixture(deployUSDMFixture);
 
       await expect (
         contract.approve(AddressZero, 1)
@@ -1030,7 +1030,7 @@ describe("USDM", () => {
     });
 
     it("reverts when more than the allowance is substracted", async () => {
-      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const { contract, acc1 } = await loadFixture(deployUSDMFixture);
       const amount = 1;
 
       await contract.approve(acc1.address, amount);
@@ -1190,7 +1190,7 @@ describe("USDM", () => {
         ],
       };
 
-      const message = {
+      const message: Message = {
         owner: owner.address,
         spender: spender.address,
         value,
@@ -1201,11 +1201,19 @@ describe("USDM", () => {
       return { domain, types, message };
     };
 
+    interface Message {
+      owner: string;
+      spender: string;
+      value: number;
+      nonce: number;
+      deadline: number | BigNumber;
+    }
+
     const signTypedData = async (
       signer: SignerWithAddress,
       domain: TypedDataDomain,
       types: Record<string, Array<TypedDataField>>,
-      message: Record<string, any>) => {
+      message: Message) => {
       const signature = await signer._signTypedData(domain, types, message);
 
       return splitSignature(signature);
