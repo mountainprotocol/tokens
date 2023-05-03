@@ -27,7 +27,7 @@ contract USDM is
     uint256 public rewardMultiplier;
 
     mapping (address => uint256) private _shares;
-    mapping(address => bool) private _blacklist;
+    mapping(address => bool) private _blocklist;
     mapping(address => mapping(address => uint256)) private _allowances;
     mapping(address => CountersUpgradeable.Counter) private _nonces;
 
@@ -37,14 +37,14 @@ contract USDM is
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
-    bytes32 public constant BLACKLIST_ROLE = keccak256("BLACKLIST_ROLE");
+    bytes32 public constant BLOCKLIST_ROLE = keccak256("BLOCKLIST_ROLE");
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
     bytes32 public constant UPGRADE_ROLE = keccak256("UPGRADE_ROLE");
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
-    event AccountBlacklisted(address indexed addr);
-    event AccountUnblacklisted(address indexed addr);
-    event RewardMultiplier(uint256 indexed addr);
+    event AccountBlocklisted(address indexed addr);
+    event AccountUnblocklisted(address indexed addr);
+    event RewardMultiplier(uint256 indexed value);
 
     /**
      * @notice Initializes the contract
@@ -241,10 +241,10 @@ contract USDM is
         _burn(from, shares);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) private view {
-        // Each blacklist check is an SLOAD, which is gas intensive.
+    function _beforeTokenTransfer(address from, address /* to */, uint256 /* amount */) private view {
+        // Each blocklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
-        require(!isBlacklisted(from), "Address is blacklisted");
+        require(!isBlocklisted(from), "Address is blocklisted");
         // Useful for scenarios such as preventing trades until the end of an evaluation
         // period, or having an emergency switch for freezing all token transfers in the
         // event of a large bug.
@@ -300,54 +300,54 @@ contract USDM is
     }
 
     /**
-     * @notice Blacklists the specified address
-     * @param account The address to blacklist
+     * @notice Blocklists the specified address
+     * @param account The address to blocklist
      */
-    function _blacklistAccount(address account) internal {
-        require(!_blacklist[account], "Address already blacklisted");
-        _blacklist[account] = true;
-        emit AccountBlacklisted(account);
+    function _blocklistAccount(address account) internal {
+        require(!_blocklist[account], "Address already blocklisted");
+        _blocklist[account] = true;
+        emit AccountBlocklisted(account);
     }
 
     /**
-     * @notice Removes the specified address from the blacklist
-     * @param account The address to remove from the blacklist
+     * @notice Removes the specified address from the blocklist
+     * @param account The address to remove from the blocklist
      */
-    function _unblacklistAccount(address account) internal {
-        require(_blacklist[account], "Address is not blacklisted");
-        _blacklist[account] = false;
-        emit AccountUnblacklisted(account);
+    function _unblocklistAccount(address account) internal {
+        require(_blocklist[account], "Address is not blocklisted");
+        _blocklist[account] = false;
+        emit AccountUnblocklisted(account);
     }
 
     /**
-     * @notice Blacklists multiple accounts at once
-     * @dev This function can only be called by an account with the BLACKLIST_ROLE
-     * @param addresses An array of addresses to be blacklisted
+     * @notice Blocklists multiple accounts at once
+     * @dev This function can only be called by an account with the BLOCKLIST_ROLE
+     * @param addresses An array of addresses to be blocklisted
      */
-    function blacklistAccounts(address[] calldata addresses) external onlyRole(BLACKLIST_ROLE) {
+    function blocklistAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-            _blacklistAccount(addresses[i]);
+            _blocklistAccount(addresses[i]);
         }
     }
 
     /**
-     * @notice Removes multiple accounts from the blacklist at once
-     * @dev This function can only be called by an account with the BLACKLIST_ROLE
-     * @param addresses An array of addresses to be removed from the blacklist
+     * @notice Removes multiple accounts from the blocklist at once
+     * @dev This function can only be called by an account with the BLOCKLIST_ROLE
+     * @param addresses An array of addresses to be removed from the blocklist
      */
-    function unblacklistAccounts(address[] calldata addresses) external onlyRole(BLACKLIST_ROLE) {
+    function unblocklistAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-            _unblacklistAccount(addresses[i]);
+            _unblocklistAccount(addresses[i]);
         }
     }
 
     /**
-     * @notice Checks if the specified address is blacklisted
+     * @notice Checks if the specified address is blocklisted
      * @param account The address to check
-     * @return A boolean value indicating whether the address is blacklisted
+     * @return A boolean value indicating whether the address is blocklisted
      */
-    function isBlacklisted(address account) public view returns (bool) {
-        return _blacklist[account];
+    function isBlocklisted(address account) public view returns (bool) {
+        return _blocklist[account];
     }
 
     /**

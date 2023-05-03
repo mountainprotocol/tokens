@@ -1,13 +1,13 @@
 # Mountain Protocol USD
 
-This smart contract implements a custom rebasing ERC-20 token with additional features like pausing, blacklisting, access control, and upgradability. The contract aims to reflect the T-Bills APY into the token value through a reward multiplier mechanism. Users receive a proportional number of shares when they deposit tokens, and the number of tokens they can withdraw is calculated based on the current reward multiplier. The addRewardMultiplier function is called once a day to adjust the reward multiplier, ensuring accurate reflection of the yield from 3 months maturity T-Bills.
+This smart contract implements a custom rebasing ERC-20 token with additional features like pausing, blocklisting, access control, and upgradability. The contract aims to reflect the T-Bills APY into the token value through a reward multiplier mechanism. Users receive a proportional number of shares when they deposit tokens, and the number of tokens they can withdraw is calculated based on the current reward multiplier. The addRewardMultiplier function is called once a day to adjust the reward multiplier, ensuring accurate reflection of the yield from 3 months maturity T-Bills.
 
 ## Features
 
 - OZ Access Control
 - Rebasing token mechanism
 - Minting and burning functionality
-- Blacklisting addresses
+- Blocklisting addresses
 - Pausing
 - Reward multiplier system
 - EIP-2612 permit support
@@ -111,15 +111,16 @@ npx hardhat help
 
 #### Events
 
-- `AddressBlacklisted(address indexed addr)`: Emitted when an address is blacklisted.
-- `AddressUnBlacklisted(address indexed addr)`: Emitted when an address is removed from the blacklist.
-- `RewardMultiplier(uint256 indexed addr)`: Emitted when the reward multiplier has changed.
+- `AddressBlocklisted(address indexed addr)`: Emitted when an address is blocklisted.
+- `AddressUnBlocklisted(address indexed addr)`: Emitted when an address is removed from the blocklist.
+- `RewardMultiplier(uint256 indexed value)`: Emitted when the reward multiplier has changed.
 - `Transfer(from indexed addr, to uint256, amount uint256)`: Emitted when transferring tokens.
 
 #### Roles
 
 - MINTER_ROLE: Grants the ability to mint tokens.
 - BURNER_ROLE: Grants the ability to burn tokens.
-- BLACKLIST_ROLE: Grants the ability to manage the blacklist.
+- BLOCKLIST_ROLE: Grants the ability to manage the blocklist.
 - ORACLE_ROLE: Grants the ability to update the reward multiplier.
 - UPGRADE_ROLE: Grants the ability to upgrade the contract.
+- PAUSE_ROLE: Grants the ability to pause/unpause the contract.

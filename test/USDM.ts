@@ -12,7 +12,7 @@ const toBaseUnit = (value: number) => parseUnits(value.toString());
 const roles = {
   MINTER: keccak256(toUtf8Bytes("MINTER_ROLE")),
   BURNER: keccak256(toUtf8Bytes("BURNER_ROLE")),
-  BLACKLIST: keccak256(toUtf8Bytes("BLACKLIST_ROLE")),
+  BLOCKLIST: keccak256(toUtf8Bytes("BLOCKLIST_ROLE")),
   ORACLE: keccak256(toUtf8Bytes("ORACLE_ROLE")),
   UPGRADE: keccak256(toUtf8Bytes("UPGRADE_ROLE")),
   PAUSE: keccak256(toUtf8Bytes("PAUSE_ROLE")),
@@ -249,47 +249,47 @@ describe("USDM", () => {
       );
     });
 
-    it("does not blacklist without blacklist role", async () => {
+    it("does not blocklist without blocklist role", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await expect(
-        contract.blacklistAccounts([owner.address])
+        contract.blocklistAccounts([owner.address])
       ).to.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`
       );
     });
 
-    it("blacklists with blacklist role", async () => {
+    it("blocklists with blocklist role", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
 
       await expect(
-        contract.blacklistAccounts([owner.address])
+        contract.blocklistAccounts([owner.address])
       ).to.not.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`
       );
     });
 
-    it("does not unblacklist without blacklist role", async () => {
+    it("does not unblocklist without blocklist role", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await expect(
-        contract.unblacklistAccounts([owner.address])
+        contract.unblocklistAccounts([owner.address])
       ).to.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`
       );
     });
 
-    it("unblacklists with blacklist role", async () => {
+    it("unblocklists with blocklist role", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
 
       await expect(
-        contract.unblacklistAccounts([owner.address])
+        contract.unblocklistAccounts([owner.address])
       ).to.not.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLACKLIST}`
+        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`
       );
     });
 
@@ -365,124 +365,123 @@ describe("USDM", () => {
     });
   });
 
-  describe("Blacklist", () => {
-    it("blacklists an account", async () => {
+  describe("Blocklist", () => {
+    it("blocklists an account", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklistAccounts([acc1.address]);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
+      await contract.blocklistAccounts([acc1.address]);
 
       expect(
-        await contract.isBlacklisted(acc1.address)
+        await contract.isBlocklisted(acc1.address)
       ).to.equal(true);
     });
 
-    it("blacklists multiples accounts", async () => {
+    it("blocklists multiples accounts", async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklistAccounts([acc1.address, acc2.address]);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
+      await contract.blocklistAccounts([acc1.address, acc2.address]);
 
       const result = await Promise.all([
-        contract.isBlacklisted(acc1.address),
-        contract.isBlacklisted(acc2.address),
+        contract.isBlocklisted(acc1.address),
+        contract.isBlocklisted(acc2.address),
       ]);
 
       expect(result.every(Boolean)).to.equal(true);
     });
 
-    it("unblacklists an account", async () => {
+    it("unblocklists an account", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklistAccounts([acc1.address]);
-      await contract.unblacklistAccounts([acc1.address]);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
+      await contract.blocklistAccounts([acc1.address]);
+      await contract.unblocklistAccounts([acc1.address]);
 
       expect(
-        await contract.isBlacklisted(acc1.address)
+        await contract.isBlocklisted(acc1.address)
       ).to.equal(false);
     });
 
-    it("unblacklists multiples accounts", async () => {
+    it("unblocklists multiples accounts", async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklistAccounts([acc1.address, acc2.address]);
-      await contract.unblacklistAccounts([acc1.address, acc2.address]);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
+      await contract.blocklistAccounts([acc1.address, acc2.address]);
+      await contract.unblocklistAccounts([acc1.address, acc2.address]);
 
       const result = await Promise.all([
-        contract.isBlacklisted(acc1.address),
-        contract.isBlacklisted(acc2.address),
+        contract.isBlocklisted(acc1.address),
+        contract.isBlocklisted(acc2.address),
       ]);
 
       expect(result.every(value => value === false)).to.equal(true);
     });
 
-    it("does not allow transfers from blacklisted accounts", async () => {
+    it("does not allow transfers from blocklisted accounts", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklistAccounts([owner.address]);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
+      await contract.blocklistAccounts([owner.address]);
 
       await expect(
         contract.transfer(acc1.address, 1)
-      ).to.be.revertedWith("Address is blacklisted");
+      ).to.be.revertedWith("Address is blocklisted");
     });
 
-    it("allows transfers to blacklisted accounts", async () => {
-      // Each blacklist check is an SLOAD, which is gas intensive.
+    it("allows transfers to blocklisted accounts", async () => {
       // We only block sender not receiver, so we don't tax every user
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklistAccounts([acc1.address]);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
+      await contract.blocklistAccounts([acc1.address]);
 
       await expect(
         contract.transfer(acc1.address, 1)
-      ).to.not.be.revertedWith("Address is blacklisted");
+      ).to.not.be.revertedWith("Address is blocklisted");
     });
 
-    it("does not add an account already blacklisted", async () => {
+    it("does not add an account already blocklisted", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklistAccounts([acc1.address]);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
+      await contract.blocklistAccounts([acc1.address]);
 
       await expect(
-        contract.blacklistAccounts([acc1.address])
-      ).to.be.revertedWith("Address already blacklisted");
+        contract.blocklistAccounts([acc1.address])
+      ).to.be.revertedWith("Address already blocklisted");
     });
 
-    it("does not unblacklist an account not blacklisted", async () => {
+    it("does not unblocklist an account not blocklisted", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
 
       await expect(
-        contract.unblacklistAccounts([owner.address])
-      ).to.be.revertedWith("Address is not blacklisted");
+        contract.unblocklistAccounts([owner.address])
+      ).to.be.revertedWith("Address is not blocklisted");
     });
   });
 
-  it("reverts when blacklisting repeated accounts", async () => {
+  it("reverts when blocklisting repeated accounts", async () => {
     const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
 
       await expect(
-        contract.blacklistAccounts([acc1.address, acc2.address, acc2.address])
-      ).to.be.revertedWith("Address already blacklisted");
+        contract.blocklistAccounts([acc1.address, acc2.address, acc2.address])
+      ).to.be.revertedWith("Address already blocklisted");
   });
 
-  it("reverts when unblacklisting repeated accounts", async () => {
+  it("reverts when unblocklisting repeated accounts", async () => {
     const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
-      await contract.grantRole(roles.BLACKLIST, owner.address);
-      await contract.blacklistAccounts([acc1.address, acc2.address]);
+      await contract.grantRole(roles.BLOCKLIST, owner.address);
+      await contract.blocklistAccounts([acc1.address, acc2.address]);
 
       await expect(
-        contract.unblacklistAccounts([acc1.address, acc2.address, acc2.address])
-      ).to.be.revertedWith("Address is not blacklisted");
+        contract.unblocklistAccounts([acc1.address, acc2.address, acc2.address])
+      ).to.be.revertedWith("Address is not blocklisted");
   });
 
   describe("Pause", () => {
