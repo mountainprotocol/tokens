@@ -93,6 +93,12 @@ describe("USDM", () => {
 
       expect( await contract.balanceOf(owner.address)).to.equal(totalShares);
     });
+
+    it("sets initial reward multiplier to 100%", async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
+
+      expect( await contract.rewardMultiplier()).to.equal(toBaseUnit(1)); // 1 equals to 100%
+    });
   });
 
   describe("Transfer", () => {
@@ -111,7 +117,7 @@ describe("USDM", () => {
       ).to.changeTokenBalances(contract, [acc1, acc2], [amount2.mul(-1), amount2]);
     });
 
-    it("fails if transfer amount exceeds balance", async () => {
+    it("reverts when transfer amount exceeds balance", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       const balance = await contract.balanceOf(owner.address);
@@ -132,7 +138,7 @@ describe("USDM", () => {
         .withArgs(owner.address, to, amount);
     });
 
-    it("fails if transfer to the zero address", async () => {
+    it("reverts when transfer to the zero address", async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
 
       const amount = toBaseUnit(1);
@@ -566,14 +572,6 @@ describe("USDM", () => {
   });
 
   describe("Reward Multiplier", () => {
-    it("initializes the reward multiplier with 100%", async () => {
-      const { contract } = await loadFixture(deployUSDMFixture);
-
-      expect(
-        await contract.rewardMultiplier()
-      ).to.equal(toBaseUnit(1)); // 1 equals to 100%
-    });
-
     it("does not support reward multiplier lower than zero", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
@@ -883,7 +881,7 @@ describe("USDM", () => {
   });
 
   describe("Approve", () => {
-    it("fails when spender is the zero address", async () => {
+    it("reverts when spender is the zero address", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await expect (
@@ -924,8 +922,51 @@ describe("USDM", () => {
     });
   });
 
+  describe("Increase Allowance", () => {
+    it("approves the requested amount", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const amount = 1;
+
+      await contract.increaseAllowance(acc1.address, amount);
+
+      await expect(
+        await contract.allowance(owner.address, acc1.address)
+      ).to.equal(amount);
+    });
+
+    it("increases the spender allowance adding the requested amount", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const amount = 1;
+
+      await contract.approve(acc1.address, amount);
+      await contract.increaseAllowance(acc1.address, amount);
+
+      await expect(
+        await contract.allowance(owner.address, acc1.address)
+        ).to.equal(amount * 2);
+    });
+
+    it("emits an approval event", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const amount = 1;
+
+      await expect(
+        await contract.increaseAllowance(acc1.address, amount)
+      ).to.emit(contract, "Approval").withArgs(owner.address, acc1.address, amount);
+    });
+
+    it("reverts when spender is the zero address", async () => {
+      const { contract } = await loadFixture(deployUSDMFixture);
+      const amount = 1;
+
+      await expect(
+        contract.increaseAllowance(AddressZero, amount)
+        ).to.be.revertedWith("ERC20: approve to the zero address");
+    });
+  });
+
   describe("Decrease Allowance", () => {
-    it("fails if decreased allowance is below zero", async () => {
+    it("reverts when there was no approved amount before decreasing", async () => {
       const { contract, acc1 } = await loadFixture(deployUSDMFixture);
 
       await expect(
@@ -933,29 +974,53 @@ describe("USDM", () => {
       ).to.be.revertedWith("ERC20: decreased allowance below zero");
     });
 
-    it("decreases the allowance", async () => {
+    it("decreases the spender allowance substracting the requested amount", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const amount = 2;
-      const subtractedValue = 1;
+      const subtractedAmount = 1;
 
       await contract.approve(acc1.address, amount);
-      await contract.decreaseAllowance(acc1.address, subtractedValue);
+      await contract.decreaseAllowance(acc1.address, subtractedAmount);
 
       expect(
         await contract.allowance(owner.address, acc1.address)
-      ).to.be.equal(amount - subtractedValue);
+      ).to.be.equal(amount - subtractedAmount);
+    });
+
+    it("sets allowance to zero when all allowance is removed", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const amount = 1;
+      const subtractedAmount = 1;
+
+      await contract.approve(acc1.address, amount);
+      await contract.decreaseAllowance(acc1.address, subtractedAmount);
+
+      expect(
+        await contract.allowance(owner.address, acc1.address)
+      ).to.be.equal(0);
+    });
+
+    it("reverts when more than the allowance is substracted", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const amount = 1;
+
+      await contract.approve(acc1.address, amount);
+
+      await expect(
+        contract.decreaseAllowance(acc1.address, amount + 1)
+      ).to.be.revertedWith("ERC20: decreased allowance below zero");
     });
 
     it("emits an approval event", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const amount = 2;
-      const subtractedValue = 1;
+      const subtractedAmount = 1;
 
       await contract.approve(acc1.address, amount);
 
       await expect(
-        await contract.decreaseAllowance(acc1.address, subtractedValue)
-      ).to.emit(contract, "Approval").withArgs(owner.address, acc1.address, amount - subtractedValue);
+        await contract.decreaseAllowance(acc1.address, subtractedAmount)
+      ).to.emit(contract, "Approval").withArgs(owner.address, acc1.address, amount - subtractedAmount);
     });
   });
 
