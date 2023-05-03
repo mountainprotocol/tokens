@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -172,7 +172,8 @@ contract USDM is
         _totalShares += shares;
 
         unchecked {
-            // Overflow not possible: shares + shares amount is at most totalShares + shares amount, which is checked above.
+            // Overflow not possible: shares + shares amount is at most totalShares + shares amount
+            // which is checked above.
             _shares[to] += shares;
         }
 
