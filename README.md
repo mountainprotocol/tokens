@@ -122,4 +122,4 @@ npx hardhat help
 - BURNER_ROLE: Grants the ability to burn tokens.
 - BLACKLIST_ROLE: Grants the ability to manage the blacklist.
 - ORACLE_ROLE: Grants the ability to update the reward multiplier.
-- UPGRADER_ROLE: Grants the ability to upgrade the contract.
+- UPGRADE_ROLE: Grants the ability to upgrade the contract.

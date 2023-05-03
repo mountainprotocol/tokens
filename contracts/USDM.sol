@@ -2,7 +2,6 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
@@ -14,7 +13,6 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.
 
 contract USDM is
     IERC20Upgradeable,
-    OwnableUpgradeable,
     AccessControlUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable,
@@ -43,7 +41,8 @@ contract USDM is
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant BLACKLIST_ROLE = keccak256("BLACKLIST_ROLE");
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
-    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant UPGRADE_ROLE = keccak256("UPGRADE_ROLE");
+    bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
     event AccountBlacklisted(address indexed addr);
     event AccountUnblacklisted(address indexed addr);
@@ -60,7 +59,6 @@ contract USDM is
         _symbol = symbol_;
         rewardMultiplier = BASE;
 
-        __Ownable_init();
         __AccessControl_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
@@ -76,9 +74,9 @@ contract USDM is
     }
 
     /**
-     * @notice Ensures that only accounts with the UPGRADER_ROLE can upgrade the contract
+     * @notice Ensures that only accounts with the UPGRADE_ROLE can upgrade the contract
      */
-    function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address) internal override onlyRole(UPGRADE_ROLE) {}
 
     /**
      * @notice Returns the name of the token
@@ -359,7 +357,7 @@ contract USDM is
      * @dev Only the contract owner can call this function.
      * @dev Inherits the _pause function from @openzeppelin/PausableUpgradeable contract.
      */
-    function pause() external onlyOwner {
+    function pause() external onlyRole(PAUSE_ROLE) {
         super._pause();
     }
 
@@ -368,7 +366,7 @@ contract USDM is
      * @dev Only the contract owner can call this function.
      * @dev Inherits the _unpause function from @openzeppelin/PausableUpgradeable contract.
      */
-    function unpause() external onlyOwner {
+    function unpause() external onlyRole(PAUSE_ROLE) {
         super._unpause();
     }
 
