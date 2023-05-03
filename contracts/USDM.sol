@@ -161,21 +161,22 @@ contract USDM is
      * @notice Mints a specified number of shares to the given address.
      * @dev This is an internal function.
      * @param to The address to which shares will be minted.
-     * @param shares The number of shares to mint.
+     * @param amount The number of tokens to mint.
      */
-    function _mint(address to, uint256 shares) private {
+    function _mint(address to, uint256 amount) private {
         require(to != address(0), "ERC20: mint to the zero address");
 
-        _beforeTokenTransfer(address(0), to, shares);
+        _beforeTokenTransfer(address(0), to, amount);
 
+        uint256 shares = convertToShares(amount);
         _totalShares += shares;
 
         unchecked {
-            // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
+            // Overflow not possible: shares + shares amount is at most totalShares + shares amount, which is checked above.
             _shares[to] += shares;
         }
 
-        _afterTokenTransfer(address(0), to, shares);
+        _afterTokenTransfer(address(0), to, amount);
     }
 
     /**
@@ -194,30 +195,31 @@ contract USDM is
      * @param amount The amount of tokens to mint
      */
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
-        uint256 shares = convertToShares(amount);
-        _mint(to, shares);
+        _mint(to, amount);
     }
 
     /**
      * @notice Burns a specified number of shares from the given address.
      * @dev This is an internal function.
      * @param account The address from which shares will be burned.
-     * @param shares The number of shares to burn.
+     * @param amount The number of tokens to burn.
      */
-    function _burn(address account, uint256 shares) private {
+    function _burn(address account, uint256 amount) private {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(account, address(0), shares);
+        _beforeTokenTransfer(account, address(0), amount);
+
+        uint256 shares = convertToShares(amount);
 
         uint256 accountShares = sharesOf(account);
         require(accountShares >= shares, "ERC20: burn amount exceeds balance");
         unchecked {
             _shares[account] = accountShares - shares;
-            // Overflow not possible: amount <= accountBalance <= totalSupply.
+            // Overflow not possible: amount <= accountShares <= totalShares.
             _totalShares -= shares;
         }
 
-        _afterTokenTransfer(account, address(0), shares);
+        _afterTokenTransfer(account, address(0), amount);
     }
 
     /**
@@ -237,8 +239,7 @@ contract USDM is
      * @param amount The amount of tokens to burn.
      */
     function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
-        uint256 shares = convertToShares(amount);
-        _burn(from, shares);
+        _burn(from, amount);
     }
 
     /**
@@ -298,7 +299,7 @@ contract USDM is
         require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
         unchecked {
             _shares[from] = fromShares - shares;
-            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
+            // Overflow not possible: the sum of all shares is capped by totalShares, and the sum is preserved by
             // decrementing then incrementing.
             _shares[to] += shares;
         }

@@ -750,13 +750,13 @@ describe("USDM", () => {
       await contract.grantRole(roles.MINTER, owner.address);
 
       const totalShares = await contract.totalShares();
-      const mintAmount = toBaseUnit(1);
+      const amount = toBaseUnit(1);
 
-      await contract.mint(owner.address, mintAmount);
+      await contract.mint(owner.address, amount);
 
       expect(
         await contract.totalShares()
-      ).to.equal(totalShares.add(mintAmount));
+      ).to.equal(totalShares.add(amount));
     });
 
     it("increments total supply when mint", async () => {
@@ -765,13 +765,13 @@ describe("USDM", () => {
       await contract.grantRole(roles.MINTER, owner.address);
 
       const totalSupply = await contract.totalSupply();
-      const mintAmount = toBaseUnit(1);
+      const amount = toBaseUnit(1);
 
-      await contract.mint(owner.address, mintAmount);
+      await contract.mint(owner.address, amount);
 
       expect(
         await contract.totalSupply()
-      ).to.equal(totalSupply.add(mintAmount));
+      ).to.equal(totalSupply.add(amount));
     });
 
     it("emits a transfer event", async () => {
@@ -779,11 +779,26 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.MINTER, owner.address);
 
-      const mintAmount = toBaseUnit(1);
+      const amount = toBaseUnit(1);
 
       await expect(
-        contract.mint(owner.address, mintAmount)
-      ).to.emit(contract,"Transfer").withArgs(AddressZero, owner.address, mintAmount);
+        contract.mint(owner.address, amount)
+      ).to.emit(contract,"Transfer").withArgs(AddressZero, owner.address, amount);
+    });
+
+    it("emits a transfer event with amount of tokens not shares", async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
+
+      await contract.grantRole(roles.MINTER, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
+
+      const amount = toBaseUnit(1000);
+
+      await contract.addRewardMultiplier(toBaseUnit(0.0001));
+
+      await expect(
+        contract.mint(owner.address, amount)
+      ).to.emit(contract,"Transfer").withArgs(AddressZero, owner.address, amount);
     });
 
     it("mints shares to correct address", async () => {
@@ -791,13 +806,13 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.MINTER, owner.address);
 
-      const mintAmount = toBaseUnit(1);
+      const amount = toBaseUnit(1);
 
-      await contract.mint(acc1.address, mintAmount)
+      await contract.mint(acc1.address, amount)
 
       expect(
         await contract.sharesOf(acc1.address)
-      ).to.equal(mintAmount);
+      ).to.equal(amount);
     });
 
     it("does not allow minting to null address", async () => {
@@ -805,11 +820,11 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.MINTER, owner.address);
 
-      const mintAmount = toBaseUnit(1);
+      const amount = toBaseUnit(1);
 
 
       await expect(
-        contract.mint(AddressZero, mintAmount)
+        contract.mint(AddressZero, amount)
       ).to.be.revertedWith("ERC20: mint to the zero address");
     });
   });
@@ -872,6 +887,21 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.BURNER, owner.address);
       await contract.burn(owner.address, amount)
+
+      await expect(
+        contract.burn(owner.address, amount)
+      ).to.emit(contract, "Transfer").withArgs(owner.address, AddressZero, amount);
+    });
+
+    it("emits a transfer event with amount of tokens not shares", async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
+
+      await contract.grantRole(roles.BURNER, owner.address);
+      await contract.grantRole(roles.ORACLE, owner.address);
+
+      const amount = toBaseUnit(1000);
+
+      await contract.addRewardMultiplier(toBaseUnit(0.0001));
 
       await expect(
         contract.burn(owner.address, amount)

@@ -110,9 +110,9 @@ npx hardhat help
 - `addRewardMultiplier(uint256 rewardMultiplier_)`: Adds the provided interest rate to the current reward multiplier.
 - `approve(address spender, uint256 amount)`: Approves an allowance for a spender.
 - `allowance(address owner, address spender)`: Returns the allowance for a spender.
-- `transferFrom(address from, address to, uint256 amount)`:
-- `increaseAllowance(address spender, uint256 addedValue)`:
-- `decreaseAllowance(address spender, uint256 subtractedValue)`:
+- `transferFrom(address from, address to, uint256 amount)`: Moves tokens from an address to another one using the allowance mechanism.
+- `increaseAllowance(address spender, uint256 addedValue)`: Increases the allowance granted to spender by the caller.
+- `decreaseAllowance(address spender, uint256 subtractedValue)`: Decreases the allowance granted to spender by the caller.
 - `DOMAIN_SEPARATOR()`: Returns the EIP-712 domain separator.
 - `nonces(address owner)`: Returns the nonce for the specified address.
 - `permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)`: Implements EIP-2612 permit functionality.
@@ -120,8 +120,8 @@ npx hardhat help
 #### Private and internal Functions
 
 - `_authorizeUpgrade(address newImplementation)`: Internal function to authorize an upgrade.
-- `_mint(address to, uint256 shares)`: Internal function to mint tokens to the specified address.
-- `_burn(address account, uint256 shares)`: Internal function to burn tokens from the specified address.
+- `_mint(address to, uint256 amount)`: Internal function to mint tokens to the specified address.
+- `_burn(address account, uint256 amount)`: Internal function to burn tokens from the specified address.
 - `_beforeTokenTransfer(address from, address to, uint256 amount)`: Hook that is called before any transfer of tokens.
 - `_afterTokenTransfer(address from, address to, uint256 amount)`: Hook that is called after any transfer of tokens.
 - `_transfer(address from, address to, uint256 amount)`: Internal function to transfer tokens between addresses.
