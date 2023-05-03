@@ -241,6 +241,18 @@ contract USDM is
         _burn(from, shares);
     }
 
+    /**
+     * @dev Hook that is called before any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * will be transferred to `to`.
+     * - when `from` is zero, `amount` tokens will be minted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens will be burned.
+     * - `from` and `to` are never both zero.
+     */
     function _beforeTokenTransfer(address from, address /* to */, uint256 /* amount */) private view {
         // Each blocklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
@@ -251,6 +263,19 @@ contract USDM is
         require(!paused(), "Transfers not allowed while paused");
     }
 
+
+    /**
+     * @dev Hook that is called after any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * has been transferred to `to`.
+     * - when `from` is zero, `amount` tokens have been minted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens have been burned.
+     * - `from` and `to` are never both zero.
+     */
     function _afterTokenTransfer(address from, address to, uint256 amount) private {
         emit Transfer(from, to, amount);
     }
@@ -303,7 +328,7 @@ contract USDM is
      * @notice Blocklists the specified address
      * @param account The address to blocklist
      */
-    function _blocklistAccount(address account) internal {
+    function _blocklistAccount(address account) private {
         require(!_blocklist[account], "Address already blocklisted");
         _blocklist[account] = true;
         emit AccountBlocklisted(account);
@@ -313,7 +338,7 @@ contract USDM is
      * @notice Removes the specified address from the blocklist
      * @param account The address to remove from the blocklist
      */
-    function _unblocklistAccount(address account) internal {
+    function _unblocklistAccount(address account) private {
         require(_blocklist[account], "Address is not blocklisted");
         _blocklist[account] = false;
         emit AccountUnblocklisted(account);
@@ -500,6 +525,24 @@ contract USDM is
     }
 
     /**
+     * @dev Atomically increases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     */
+    function increaseAllowance(address spender, uint256 addedValue) external returns (bool) {
+        address owner = _msgSender();
+        _approve(owner, spender, allowance(owner, spender) + addedValue);
+        return true;
+    }
+
+    /**
      * @dev Atomically decreases the allowance granted to `spender` by the caller.
      *
      * This is an alternative to {approve} that can be used as a mitigation for
@@ -546,7 +589,7 @@ contract USDM is
      * @dev This is an internal function.
      * @param owner The address whose nonce is to be incremented.
      */
-    function _useNonce(address owner) internal returns (uint256 current) {
+    function _useNonce(address owner) private returns (uint256 current) {
         CountersUpgradeable.Counter storage nonce = _nonces[owner];
         current = nonce.current();
         nonce.increment();
