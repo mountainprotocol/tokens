@@ -40,8 +40,6 @@ describe("USDM", () => {
     return { contract, owner, acc1, acc2 };
   }
 
-
-  // TODO: fix decimal presition issue using an assert with a range
   describe("Deployment", () => {
     it("has a name", async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
@@ -664,8 +662,9 @@ describe("USDM", () => {
 
       expect(
         await contract.balanceOf(acc1.address)
-      ).to.equal(
-        expected
+        ).to.closeTo(
+        // blanace may be off by up to 1 wei
+        expected, parseUnits("0.000000000000000001")
       );
     });
   });
