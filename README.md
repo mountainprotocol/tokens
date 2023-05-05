@@ -88,7 +88,7 @@ npx hardhat help
 
 #### Public and External Functions
 
-- `initialize(string memory name_, string memory symbol_, uint256 initialShares)`: Initializes the contract.
+- `initialize(string memory name_, string memory symbol_, uint256 initialSupply)`: Initializes the contract.
 - `name()`: Returns the name of the token.
 - `symbol()`: Returns the symbol of the token.
 - `decimals()`: Returns the number of decimals the token uses.
@@ -98,8 +98,8 @@ npx hardhat help
 - `totalSupply()`: Returns the total supply.
 - `balanceOf(address account)`: Returns the balance of account.
 - `sharesOf(address account)`: Returns the shares of account.
-- `mint(address to, uint256 amount)`: Mints new tokens to the specified address.
-- `burn(address from, uint256 amount)`: Burns tokens from the specified address.
+- `mint(address to, uint256 amount)`: Creates new tokens to the specified address.
+- `burn(address from, uint256 amount)`: Destroys tokens from the specified address.
 - `transfer(address to, uint256 amount)`: Transfers tokens between addresses.
 - `blocklistAccounts(address[] addresses)`: Blocklists multiple accounts at once.
 - `unblocklistAccounts(address[] addresses)`: Unblocklists multiple accounts at once.
