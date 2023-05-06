@@ -26,7 +26,7 @@ contract USDM is
     uint256 private constant BASE = 1e18;
     uint256 public rewardMultiplier;
 
-    mapping (address => uint256) private _shares;
+    mapping(address => uint256) private _shares;
     mapping(address => bool) private _blocklist;
     mapping(address => mapping(address => uint256)) private _allowances;
     mapping(address => CountersUpgradeable.Counter) private _nonces;
@@ -260,7 +260,6 @@ contract USDM is
         require(!paused(), "Transfers not allowed while paused");
     }
 
-
     /**
      * @dev Hook that is called after any transfer of tokens. This includes
      * minting and burning.
@@ -435,11 +434,7 @@ contract USDM is
      * - `owner` cannot be the zero address.
      * - `spender` cannot be the zero address.
      */
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) private {
+    function _approve(address owner, address spender, uint256 amount) private {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 

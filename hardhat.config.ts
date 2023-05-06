@@ -1,9 +1,8 @@
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-import "@nomiclabs/hardhat-solhint";
-import "@nomicfoundation/hardhat-chai-matchers";
-import "@openzeppelin/hardhat-upgrades";
-import dotenv from "dotenv";
+import { HardhatUserConfig } from 'hardhat/config';
+import '@nomicfoundation/hardhat-toolbox';
+import '@nomicfoundation/hardhat-chai-matchers';
+import '@openzeppelin/hardhat-upgrades';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -40,11 +39,11 @@ const etherscanConfig = {
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.18",
+    version: '0.8.18',
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200
+        runs: 200,
       },
     },
   },
@@ -62,13 +61,18 @@ const config: HardhatUserConfig = {
     // ...(MAINNET_PRIVATE_KEY ? { accounts: [MAINNET_PRIVATE_KEY] } : {}),
     // },
     hardhat: {
-      chainId: 1337 // We set 1337 to make interacting with MetaMask simpler
-    }
+      chainId: 1337, // We set 1337 to make interacting with MetaMask simpler
+    },
   },
   gasReporter: gasReport ? gasReporterConfig : {},
+  mocha: {
+    timeout: 120000,
+  },
 };
 
-export default isTestEnv ? {
-  ...config,
-  ...testConfig
-} : config;
+export default isTestEnv
+  ? {
+      ...config,
+      ...testConfig,
+    }
+  : config;
