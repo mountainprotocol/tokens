@@ -75,4 +75,4 @@ jobs:
       - name: Run Mythril Analysis
         uses: docker://mythril/myth
         with:
-          args: analyze /github/workspace/contracts/USDM.sol -t 40 --execution-timeout 60 --solc-json /github/workspace/solc.json --solv 0.8.19
+          args: analyze /github/workspace/contracts/USDM.sol -t 40 --execution-timeout 60 --solc-json /github/workspace/solc.json --solv 0.8.18
