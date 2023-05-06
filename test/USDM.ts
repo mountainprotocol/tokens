@@ -1,13 +1,12 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { Contract, BigNumber } from "ethers";
+import { Contract, BigNumber, constants } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-signer';
 import { parseUnits, keccak256, toUtf8Bytes, defaultAbiCoder, id, splitSignature } from 'ethers/lib/utils';
 
-const { AddressZero } = ethers.constants
-const toBaseUnit = (value: number) => parseUnits(value.toString());
+const { AddressZero, MaxUint256 } = constants;
 
 const roles = {
   MINTER: keccak256(toUtf8Bytes("MINTER_ROLE")),
@@ -21,7 +20,7 @@ const roles = {
 describe("USDM", () => {
   const name = "Mountain Protocol USD";
   const symbol = "USDM";
-  const totalShares = toBaseUnit(1337);
+  const totalShares = parseUnits("1337");
 
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
@@ -95,20 +94,20 @@ describe("USDM", () => {
     it("sets initial reward multiplier to 100%", async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
 
-      expect( await contract.rewardMultiplier()).to.equal(toBaseUnit(1)); // 1 equals to 100%
+      expect( await contract.rewardMultiplier()).to.equal(parseUnits("1")); // 1 equals to 100%
     });
   });
 
   describe("Transfer", () => {
     it("transfers tokens from one account to another", async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
-      const amount = toBaseUnit(10);
+      const amount = parseUnits("10");
 
       await expect(
         contract.transfer(acc1.address, amount)
       ).to.changeTokenBalances(contract, [owner, acc1], [amount.mul(-1), amount]);
 
-      const amount2 = toBaseUnit(5);
+      const amount2 = parseUnits("5");
 
       await expect(
         contract.connect(acc1).transfer(acc2.address, amount2)
@@ -129,7 +128,7 @@ describe("USDM", () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       const to = acc1.address;
-      const amount = toBaseUnit(1);
+      const amount = parseUnits("1");
 
       await expect(contract.transfer(to, amount))
         .to.emit(contract, "Transfer")
@@ -139,7 +138,7 @@ describe("USDM", () => {
     it("reverts when transfer to the zero address", async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
 
-      const amount = toBaseUnit(1);
+      const amount = parseUnits("1");
 
       await expect(
         contract.transfer(AddressZero, amount)
@@ -148,12 +147,10 @@ describe("USDM", () => {
 
     it("takes supply amount as argument but transfers shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
-      const amount = toBaseUnit(100);
-      const rewardMultiplier = toBaseUnit(1.0001); // 1bps
-
-      // We use fixed-point arithmetic to avoid precision issues
+      const amount = parseUnits("100");
+      const rewardMultiplier = parseUnits("1.0001"); // 1bps
       const sharesBeforeTransfer = await contract.sharesOf(owner.address);
-      const sharesAmount = amount.mul(toBaseUnit(1)).div(rewardMultiplier);
+      const sharesAmount = amount.mul(parseUnits("1")).div(rewardMultiplier);
 
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.setRewardMultiplier(rewardMultiplier);
@@ -491,7 +488,7 @@ describe("USDM", () => {
   describe("Pause", () => {
     it("allows minting when unpaused", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
-      const tokensAmount = toBaseUnit(10);
+      const tokensAmount = parseUnits("10");
 
       await contract.grantRole(roles.MINTER, owner.address);
       await contract.grantRole(roles.PAUSE, owner.address);
@@ -505,7 +502,7 @@ describe("USDM", () => {
 
     it("does not allow minting when paused", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
-      const tokensAmount = toBaseUnit(10);
+      const tokensAmount = parseUnits("10");
 
       await contract.grantRole(roles.MINTER, owner.address);
       await contract.grantRole(roles.PAUSE, owner.address);
@@ -518,7 +515,7 @@ describe("USDM", () => {
 
     it("allows burning when unpaused", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
-      const tokensAmount = toBaseUnit(10);
+      const tokensAmount = parseUnits("10");
 
       await contract.grantRole(roles.BURNER, owner.address);
       await contract.grantRole(roles.PAUSE, owner.address);
@@ -532,7 +529,7 @@ describe("USDM", () => {
 
     it("does not allow burning when paused", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
-      const tokensAmount = toBaseUnit(10);
+      const tokensAmount = parseUnits("10");
 
       await contract.grantRole(roles.BURNER, owner.address);
       await contract.grantRole(roles.PAUSE, owner.address);
@@ -545,7 +542,7 @@ describe("USDM", () => {
 
     it("allows transfers when unpaused", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
-      const tokensAmount = toBaseUnit(10);
+      const tokensAmount = parseUnits("10");
 
       await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
@@ -558,7 +555,7 @@ describe("USDM", () => {
 
     it("does not allow transfers when paused", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
-      const tokensAmount = toBaseUnit(10);
+      const tokensAmount = parseUnits("10");
 
       await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
@@ -570,6 +567,13 @@ describe("USDM", () => {
   });
 
   describe("Reward Multiplier", () => {
+    // Error should always fall 7 orders of magnitud below than one cent of a dollar (1 GWEI)
+    // Inaccuracy stems from using fixed-point arithmetic and Solidity's 18-decimal support
+    // resulting in periodic number approximations during divisions
+    const expectEqualWithError = (actual: BigNumber, expected: BigNumber, error: string = "0.000000001") => {
+      expect(actual).to.be.closeTo(expected, parseUnits(error));
+    };
+
     it("does not support reward multiplier lower than zero", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
@@ -580,12 +584,12 @@ describe("USDM", () => {
       ).to.be.revertedWith("Invalid reward multiplier");
     });
 
-    it("adds the provided interest rate to the current reward multiplier", async () => {
+    it("adds a reward multiplier and emits event with the new value", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const interest = toBaseUnit(0.0001);
+      const interest = parseUnits("0.0001");
       const rewardMultiplier = await contract.rewardMultiplier();
       const expected = rewardMultiplier.add(interest);
 
@@ -603,7 +607,7 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const rewardMultiplier = toBaseUnit(1.0001);
+      const rewardMultiplier = parseUnits("1.0001");
 
       await expect(
         contract.setRewardMultiplier(rewardMultiplier)
@@ -619,7 +623,7 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const rewardMultiplier = toBaseUnit(0.99); // 1 equals to 100%
+      const rewardMultiplier = parseUnits("0.99"); // 1 equals to 100%
 
       await expect(
         contract.setRewardMultiplier(rewardMultiplier)
@@ -628,7 +632,7 @@ describe("USDM", () => {
 
     it("updates the total supply according to the new reward multiplier", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
-      const rewardMultiplier = toBaseUnit(1.0001);
+      const rewardMultiplier = parseUnits("1.0001");
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
@@ -638,7 +642,7 @@ describe("USDM", () => {
 
       await contract.setRewardMultiplier(rewardMultiplier);
 
-      const expected = totalShares.mul(rewardMultiplier).div(toBaseUnit(1));
+      const expected = totalShares.mul(rewardMultiplier).div(parseUnits("1"));
 
       expect(
         await contract.totalSupply()
@@ -647,33 +651,59 @@ describe("USDM", () => {
 
     it("mints by tokens amount not by shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
-      const rewardMultiplier = toBaseUnit(1.0004); // 4bps
+      const rewardMultiplier = parseUnits("0.0004"); // 4bps
 
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.grantRole(roles.MINTER, owner.address);
 
-      const amount = toBaseUnit(1000); // 1k USDM
+      const amount = parseUnits("1000"); // 1k USDM
 
       await contract.mint(acc1.address, amount); // Mint 1k
-      await contract.setRewardMultiplier(rewardMultiplier);
-      await contract.mint(acc1.address, amount);// Mint 1k
+      await contract.addRewardMultiplier(rewardMultiplier);
 
-      const expected = amount.mul(rewardMultiplier).div(toBaseUnit(1)).add(amount);
+      const expected = amount.mul(rewardMultiplier).div(parseUnits("1")).add(amount);
 
-      expect(
-        await contract.balanceOf(acc1.address)
-        ).to.closeTo(
-        // blanace may be off by up to 1 wei
-        expected, parseUnits("0.000000000000000001")
-      );
+      expectEqualWithError(await contract.balanceOf(acc1.address), expected);
+    });
+
+    it("mints accurately over an extended period", async () => {
+      const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+
+      await contract.grantRole(roles.ORACLE, owner.address);
+      await contract.grantRole(roles.MINTER, owner.address);
+
+      // Absurd worst case scenario is used to test the decimal accuracy of the contract
+      // Mint 1 USDM and set 4bps as reward multiplier everyday for 5 years
+      const dailyInterest = parseUnits("0.001"); // 10bps
+      const amount = parseUnits("1"); // 1 USDM
+      const DAYS_IN_FIVE_YEARS = 365 * 5; // 5 years
+
+      for (let i = 0; i < DAYS_IN_FIVE_YEARS; i++) {
+        await contract.mint(acc1.address, amount); // Mint 1 USDM
+        await contract.addRewardMultiplier(dailyInterest);
+      }
+
+      // Expected is calculated as follows:
+      let expected = BigNumber.from(0);
+      let rewardMultiplier = parseUnits("1");
+
+      for (let i = 0; i < DAYS_IN_FIVE_YEARS; i++) {
+        const prevRewardMultiplier = rewardMultiplier;
+        const newRewardMultiplier = rewardMultiplier.add(dailyInterest);
+
+        expected = expected.add(amount).mul(newRewardMultiplier).div(prevRewardMultiplier);
+        rewardMultiplier = newRewardMultiplier;
+      }
+
+      expectEqualWithError(await contract.balanceOf(acc1.address), expected);
     });
   });
 
   describe("Balance", () => {
     it("returns the amount of tokens, not shares", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
-      const tokensAmount = toBaseUnit(10);
-      const rewardMultiplier = toBaseUnit(1.0001);
+      const tokensAmount = parseUnits("10");
+      const rewardMultiplier = parseUnits("1.0001");
 
       await contract.grantRole(roles.MINTER, owner.address);
       await contract.grantRole(roles.ORACLE, owner.address);
@@ -681,8 +711,7 @@ describe("USDM", () => {
       await contract.setRewardMultiplier(rewardMultiplier);
 
       expect(await contract.balanceOf(acc1.address))
-        .to.equal(
-          tokensAmount.mul(rewardMultiplier).div(toBaseUnit(1))
+        .to.equal(tokensAmount.mul(rewardMultiplier).div(parseUnits("1"))
       );
     });
   });
@@ -698,13 +727,13 @@ describe("USDM", () => {
     it("does not change amount of shares when updating the reward multiplier", async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
-      const sharesAmount = toBaseUnit(1);
+      const sharesAmount = parseUnits("1");
 
       await contract.grantRole(roles.MINTER, owner.address);
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.mint(acc1.address, sharesAmount);
 
-      await contract.setRewardMultiplier(toBaseUnit(1.0001));
+      await contract.setRewardMultiplier(parseUnits("1.0001"));
 
 
       expect (await contract.sharesOf(acc1.address)).to.equal(sharesAmount);
@@ -712,8 +741,8 @@ describe("USDM", () => {
 
     it("returns the amount of shares based on tokens", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
-      const amount = toBaseUnit(14);
-      const rewardMultiplier = toBaseUnit(1.0001);
+      const amount = parseUnits("14");
+      const rewardMultiplier = parseUnits("1.0001");
 
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.setRewardMultiplier(rewardMultiplier);
@@ -722,14 +751,14 @@ describe("USDM", () => {
         await contract.convertToShares(amount)
       ).to.equal(
         // We use fixed-point arithmetic to avoid precision issues
-        amount.mul(toBaseUnit(1)).div(rewardMultiplier)
+        amount.mul(parseUnits("1")).div(rewardMultiplier)
       );
     });
 
     it("returns the amount of tokens based on shares", async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
-      const shares = toBaseUnit(14);
-      const rewardMultiplier = toBaseUnit(1.0001);
+      const shares = parseUnits("14");
+      const rewardMultiplier = parseUnits("1.0001");
 
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.setRewardMultiplier(rewardMultiplier);
@@ -738,7 +767,7 @@ describe("USDM", () => {
         await contract.convertToAmount(shares)
       ).to.equal(
         // We use fixed-point arithmetic to avoid precision issues
-        shares.mul(rewardMultiplier).div(toBaseUnit(1))
+        shares.mul(rewardMultiplier).div(parseUnits("1"))
       );
     });
   });
@@ -750,7 +779,7 @@ describe("USDM", () => {
       await contract.grantRole(roles.MINTER, owner.address);
 
       const totalShares = await contract.totalShares();
-      const amount = toBaseUnit(1);
+      const amount = parseUnits("1");
 
       await contract.mint(owner.address, amount);
 
@@ -765,7 +794,7 @@ describe("USDM", () => {
       await contract.grantRole(roles.MINTER, owner.address);
 
       const totalSupply = await contract.totalSupply();
-      const amount = toBaseUnit(1);
+      const amount = parseUnits("1");
 
       await contract.mint(owner.address, amount);
 
@@ -779,7 +808,7 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.MINTER, owner.address);
 
-      const amount = toBaseUnit(1);
+      const amount = parseUnits("1");
 
       await expect(
         contract.mint(owner.address, amount)
@@ -792,9 +821,9 @@ describe("USDM", () => {
       await contract.grantRole(roles.MINTER, owner.address);
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const amount = toBaseUnit(1000);
+      const amount = parseUnits("1000");
 
-      await contract.addRewardMultiplier(toBaseUnit(0.0001));
+      await contract.addRewardMultiplier(parseUnits("0.0001"));
 
       await expect(
         contract.mint(owner.address, amount)
@@ -806,7 +835,7 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.MINTER, owner.address);
 
-      const amount = toBaseUnit(1);
+      const amount = parseUnits("1");
 
       await contract.mint(acc1.address, amount)
 
@@ -820,7 +849,7 @@ describe("USDM", () => {
 
       await contract.grantRole(roles.MINTER, owner.address);
 
-      const amount = toBaseUnit(1);
+      const amount = parseUnits("1");
 
 
       await expect(
@@ -899,9 +928,9 @@ describe("USDM", () => {
       await contract.grantRole(roles.BURNER, owner.address);
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const amount = toBaseUnit(1000);
+      const amount = parseUnits("1000");
 
-      await contract.addRewardMultiplier(toBaseUnit(0.0001));
+      await contract.addRewardMultiplier(parseUnits("0.0001"));
 
       await expect(
         contract.burn(owner.address, amount)
@@ -1058,10 +1087,8 @@ describe("USDM", () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const from = owner.address;
       const to = acc1.address;
-      const { MaxUint256 } = ethers.constants;
 
       await contract.approve(to, MaxUint256);
-
 
       await expect(
         contract.connect(acc1).transferFrom(from, to, 1)
@@ -1151,10 +1178,10 @@ describe("USDM", () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const from = owner.address;
       const to = acc1.address;
-      const amount = toBaseUnit(1);
+      const amount = parseUnits("1");
 
       await contract.grantRole(roles.ORACLE, owner.address);
-      await contract.setRewardMultiplier(toBaseUnit(1.0004)); // 4bps
+      await contract.addRewardMultiplier(parseUnits("0.0004")); // 4bps
       await contract.approve(to, amount);
       await contract.connect(acc1).transferFrom(from, to, amount)
 
@@ -1247,7 +1274,7 @@ describe("USDM", () => {
       const { contract, owner, acc1: spender } = await loadFixture(deployUSDMFixture);
       const value = 100;
       const nonce = await contract.nonces(owner.address);
-      const deadline = ethers.constants.MaxUint256;
+      const deadline = MaxUint256;
 
       const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
       const { v, r, s } = await signTypedData(owner, domain, types, message);
@@ -1263,7 +1290,7 @@ describe("USDM", () => {
       const { contract, owner, acc1: spender } = await loadFixture(deployUSDMFixture);
       const value = 100;
       const nonce = await contract.nonces(owner.address);
-      const deadline = ethers.constants.MaxUint256;
+      const deadline = MaxUint256;
 
       const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
       const { v, r, s } = await signTypedData(owner, domain, types, message);
@@ -1279,7 +1306,7 @@ describe("USDM", () => {
       const { contract, owner, acc1: spender, acc2: otherAcc } = await loadFixture(deployUSDMFixture);
       const value = 100;
       const nonce = await contract.nonces(owner.address);
-      const deadline = ethers.constants.MaxUint256;
+      const deadline = MaxUint256;
 
       const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
       const { v, r, s } = await signTypedData(otherAcc, domain, types, message);
