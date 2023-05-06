@@ -24,8 +24,9 @@ const deploy = async () => {
   console.log("Contract address: %s", usdm.address);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const upgrade = async () => {
-  const PROXY_ADDRESS = "0x4Dbd756Fd2c7F653BEd8a7B146574DBab0076484";
+  const PROXY_ADDRESS = "0xe31Cf614fC1C5d3781d9E09bdb2e04134CDebb89";
   const newContract = await ethers.getContractFactory("USDM");
   console.log("Upgrading contract... %s", PROXY_ADDRESS);
   // It's no necessary to specify proxy's kind since it's inferred from the proxy address

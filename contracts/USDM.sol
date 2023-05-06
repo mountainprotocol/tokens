@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
@@ -14,14 +12,12 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.
 
 contract USDM is
     IERC20Upgradeable,
-    OwnableUpgradeable,
     AccessControlUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable,
     IERC20PermitUpgradeable,
     EIP712Upgradeable
 {
-    using MathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
     string private _name;
@@ -31,7 +27,7 @@ contract USDM is
     uint256 public rewardMultiplier;
 
     mapping (address => uint256) private _shares;
-    mapping(address => bool) private _blacklist;
+    mapping(address => bool) private _blocklist;
     mapping(address => mapping(address => uint256)) private _allowances;
     mapping(address => CountersUpgradeable.Counter) private _nonces;
 
@@ -41,33 +37,33 @@ contract USDM is
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
-    bytes32 public constant BLACKLIST_ROLE = keccak256("BLACKLIST_ROLE");
+    bytes32 public constant BLOCKLIST_ROLE = keccak256("BLOCKLIST_ROLE");
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
-    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant UPGRADE_ROLE = keccak256("UPGRADE_ROLE");
+    bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
-    event AccountBlacklisted(address indexed addr);
-    event AccountUnblacklisted(address indexed addr);
-    event RewardMultiplier(uint256 indexed addr);
+    event AccountBlocklisted(address indexed addr);
+    event AccountUnblocklisted(address indexed addr);
+    event RewardMultiplier(uint256 indexed value);
 
     /**
-     * @notice Initializes the contract
-     * @param name_ The name of the token
-     * @param symbol_ The symbol of the token
-     * @param initialShares The initial amount of shares for the contract creator
+     * @notice Initializes the contract.
+     * @param name_ The name of the token.
+     * @param symbol_ The symbol of the token.
+     * @param initialSupply The initial amount of tokens for the contract creator.
      */
-    function initialize(string memory name_, string memory symbol_, uint256 initialShares) external initializer {
+    function initialize(string memory name_, string memory symbol_, uint256 initialSupply) external initializer {
         _name = name_;
         _symbol = symbol_;
-        rewardMultiplier = BASE;
+        _setRewardMultiplier(BASE);
 
-        __Ownable_init();
         __AccessControl_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
         __EIP712_init(name_, "1");
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _mint(_msgSender(), initialShares);
+        _mint(_msgSender(), initialSupply);
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -76,30 +72,30 @@ contract USDM is
     }
 
     /**
-     * @notice Ensures that only accounts with the UPGRADER_ROLE can upgrade the contract
+     * @dev Ensures that only accounts with UPGRADE_ROLE can upgrade the contract.
      */
-    function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address) internal override onlyRole(UPGRADE_ROLE) {}
 
     /**
-     * @notice Returns the name of the token
-     * @return A string representing the token's name
+     * @notice Returns the name of the token.
+     * @return A string representing the token's name.
      */
     function name() external view returns (string memory) {
         return _name;
     }
 
     /**
-     * @notice Returns the symbol of the token
-     * @return A string representing the token's symbol
+     * @notice Returns the symbol of the token.
+     * @return A string representing the token's symbol.
      */
     function symbol() external view returns (string memory) {
         return _symbol;
     }
 
     /**
-     * @notice Returns the number of decimals the token uses
+     * @notice Returns the number of decimals the token uses.
      * @dev This value is only used for _display_ purposes: it in
-     * no way affects any of the arithmetic of the contract, including
+     * no way affects any of the arithmetic of the contract, including.
      * {IERC20-balanceOf} and {IERC20-transfer}.
      * @return The number of decimals (18)
      */
@@ -108,162 +104,189 @@ contract USDM is
     }
 
     /**
-     * @notice Converts an amount of tokens to shares
-     * @param amount The amount of tokens to convert
-     * @return The equivalent amount of shares
+     * @notice Converts an amount of tokens to shares.
+     * @param amount The amount of tokens to convert.
+     * @return The equivalent amount of shares.
      */
     function convertToShares(uint256 amount) public view returns (uint256) {
-        return amount.mulDiv(BASE, rewardMultiplier, MathUpgradeable.Rounding.Down);
+        return (amount * BASE) / rewardMultiplier;
     }
 
     /**
-     * @notice Converts an amount of shares to tokens
-     * @param shares The amount of shares to convert
-     * @return The equivalent amount of tokens
+     * @notice Converts an amount of shares to tokens.
+     * @param shares The amount of shares to convert.
+     * @return The equivalent amount of tokens.
      */
     function convertToAmount(uint256 shares) public view returns (uint256) {
-        return shares.mulDiv(rewardMultiplier, BASE, MathUpgradeable.Rounding.Down);
+        return (shares * rewardMultiplier) / BASE;
     }
 
     /**
-     * @notice Returns the total amount of shares
-     * @return The total amount of shares
+     * @notice Returns the total amount of shares.
+     * @return The total amount of shares.
      */
     function totalShares() external view returns (uint256) {
         return _totalShares;
     }
 
     /**
-     * @notice Returns the total supply of tokens
-     * @return The total supply of tokens
+     * @notice Returns the total supply of tokens.
+     * @return The total supply of tokens.
      */
     function totalSupply() external view returns (uint256) {
         return convertToAmount(_totalShares);
     }
 
     /**
-     * @notice Returns the amount of shares owned by the account
-     * @param account The account to check
-     * @return The amount of shares owned by the account
+     * @notice Returns the amount of shares owned by the account.
+     * @param account The account to check.
+     * @return The amount of shares owned by the account.
      */
     function sharesOf(address account) public view returns (uint256) {
         return _shares[account];
     }
 
     /**
-     * @notice Returns the balance of the specified address
+     * @notice Returns the balance of the specified address.
      * @dev Balances are dynamic and equal the `account`'s share in the amount of the
      * total reserves controlled by the protocol. See `sharesOf`.
-     * @param account The address to query the balance of
-     * @return The balance of the specified address
+     * @param account The address to query the balance of.
+     * @return The balance of the specified address.
      */
     function balanceOf(address account) external view returns (uint256) {
         return convertToAmount(sharesOf(account));
     }
 
     /**
-     * @notice Mints a specified number of shares to the given address.
-     * @dev This is an internal function.
-     * @param to The address to which shares will be minted.
-     * @param shares The number of shares to mint.
-     */
-    function _mint(address to, uint256 shares) private {
-        require(to != address(0), "ERC20: mint to the zero address");
-
-        _beforeTokenTransfer(address(0), to, shares);
-
-        _totalShares += shares;
-
-        unchecked {
-            // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
-            _shares[to] += shares;
-        }
-
-        _afterTokenTransfer(address(0), to, shares);
-    }
-
-    /**
-     * @notice Mints new tokens to the specified address
-     * @dev Creates `shares` and assigns them to `to` account,
-     * increasing the total amount of shares not the total supply (directly).
+     * @dev Internal function that mints a specified number of tokens to the given address.
+     * Creates `amount` tokens and assigns them to `account`, increasing
+     * the total supply.
      *
      * Emits a {Transfer} event with `from` set to the zero address.
      *
      * Requirements:
      *
      * - Only users with MINTER_ROLE can call this function.
-     * - `to` cannot be the zero address.
-     * - the contract must not be paused.
-     * @param to The address to mint the tokens to
-     * @param amount The amount of tokens to mint
+     * - `account` cannot be the zero address.
+     * @param to The address to which tokens will be minted.
+     * @param amount The number of tokens to mint.
      */
-    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+    function _mint(address to, uint256 amount) private {
+        require(to != address(0), "ERC20: mint to the zero address");
+
+        _beforeTokenTransfer(address(0), to, amount);
+
         uint256 shares = convertToShares(amount);
-        _mint(to, shares);
+        _totalShares += shares;
+
+        unchecked {
+            // Overflow not possible: shares + shares amount is at most totalShares + shares amount
+            // which is checked above.
+            _shares[to] += shares;
+        }
+
+        _afterTokenTransfer(address(0), to, amount);
     }
 
     /**
-     * @notice Burns a specified number of shares from the given address.
-     * @dev This is an internal function.
-     * @param account The address from which shares will be burned.
-     * @param shares The number of shares to burn.
+     * @notice Creates new tokens to the specified address.
+     * @dev See {_mint}.
+     * @param to The address to mint the tokens to.
+     * @param amount The amount of tokens to mint.
      */
-    function _burn(address account, uint256 shares) private {
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+        _mint(to, amount);
+    }
+
+    /**
+     * @dev Burns `amount` tokens from `account`, reducing the total supply.
+     *
+     * Emits a {Transfer} event with `to` set to the zero address.
+     *
+     * Requirements:
+     *
+     * - Only users with BURNER_ROLE can call this function.
+     * - The contract must not be paused.
+     * @param account The address from which tokens will be burned.
+     * @param amount The amount of tokens to burn.
+     */
+    function _burn(address account, uint256 amount) private {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(account, address(0), shares);
+        _beforeTokenTransfer(account, address(0), amount);
+
+        uint256 shares = convertToShares(amount);
 
         uint256 accountShares = sharesOf(account);
         require(accountShares >= shares, "ERC20: burn amount exceeds balance");
         unchecked {
             _shares[account] = accountShares - shares;
-            // Overflow not possible: amount <= accountBalance <= totalSupply.
+            // Overflow not possible: amount <= accountShares <= totalShares.
             _totalShares -= shares;
         }
 
-        _afterTokenTransfer(account, address(0), shares);
+        _afterTokenTransfer(account, address(0), amount);
     }
 
     /**
-     * @notice Burns a specified amount of tokens from the given address.
-     * @dev This function can only be called by an account with the BURNER_ROLE.
-     * It converts the token amount to shares and burns the shares.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * * Requirements:
-     *
-     * - Only users with BURNER_ROLE can call this function.
-     * - `from` cannot be the zero address.
-     * - `from` must hold at least `shares` shares.
-     * - the contract must not be paused.
+     * @notice Destroys a specified amount of tokens from the given address.
+     * @dev See {_burn}.
      * @param from The address from which tokens will be burned.
      * @param amount The amount of tokens to burn.
      */
     function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
-        uint256 shares = convertToShares(amount);
-        _burn(from, shares);
+        _burn(from, amount);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) private view {
-        // Each blacklist check is an SLOAD, which is gas intensive.
+    /**
+     * @dev Hook that is called before any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * will be transferred to `to`.
+     * - when `from` is zero, `amount` tokens will be minted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens will be burned.
+     * - `from` and `to` are never both zero.
+     */
+    function _beforeTokenTransfer(address from, address /* to */, uint256 /* amount */) private view {
+        // Each blocklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
-        require(!isBlacklisted(from), "Address is blacklisted");
+        require(!isBlocklisted(from), "Address is blocklisted");
         // Useful for scenarios such as preventing trades until the end of an evaluation
         // period, or having an emergency switch for freezing all token transfers in the
         // event of a large bug.
         require(!paused(), "Transfers not allowed while paused");
     }
 
+
+    /**
+     * @dev Hook that is called after any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * has been transferred to `to`.
+     * - when `from` is zero, `amount` tokens have been minted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens have been burned.
+     * - `from` and `to` are never both zero.
+     */
     function _afterTokenTransfer(address from, address to, uint256 amount) private {
         emit Transfer(from, to, amount);
     }
 
     /**
-     * @notice Transfers a specified number of tokens from one address to another.
-     * @dev This is an internal function.
-     * @param from The address from which shares will be transferred.
-     * @param to The address to which shares will be transferred.
+     * @dev Internal function that transfers a specified number of tokens from one address to another.
+     * Emits a {Transfer} event.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     * - the caller must have a balance of at least `amount`.
+     * @param from The address from which tokens will be transferred.
+     * @param to The address to which tokens will be transferred.
      * @param amount The number of tokens to transfer.
      */
     function _transfer(address from, address to, uint256 amount) private {
@@ -277,7 +300,7 @@ contract USDM is
         require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
         unchecked {
             _shares[from] = fromShares - shares;
-            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
+            // Overflow not possible: the sum of all shares is capped by totalShares, and the sum is preserved by
             // decrementing then incrementing.
             _shares[to] += shares;
         }
@@ -287,11 +310,7 @@ contract USDM is
 
     /**
      * @notice Transfers a specified number of tokens from the caller's address to the recipient.
-     * @dev This function converts the token amount to shares and calls the _transferShares function.
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     * - the caller must have a balance of at least `amount`.
+     * @dev See {_transfer}.
      * @param to The address to which tokens will be transferred.
      * @param amount The number of tokens to transfer.
      * @return A boolean value indicating whether the operation succeeded.
@@ -304,99 +323,107 @@ contract USDM is
     }
 
     /**
-     * @notice Blacklists the specified address
-     * @param account The address to blacklist
+     * @dev Internal function that blocklists the specified address.
+     * @param account The address to blocklist.
      */
-    function _blacklistAccount(address account) internal {
-        require(!_blacklist[account], "Address already blacklisted");
-        _blacklist[account] = true;
-        emit AccountBlacklisted(account);
+    function _blocklistAccount(address account) private {
+        require(!_blocklist[account], "Address already blocklisted");
+        _blocklist[account] = true;
+        emit AccountBlocklisted(account);
     }
 
     /**
-     * @notice Removes the specified address from the blacklist
-     * @param account The address to remove from the blacklist
+     * @dev Internal function that removes the specified address from the blocklist.
+     * @param account The address to remove from the blocklist.
      */
-    function _unblacklistAccount(address account) internal {
-        require(_blacklist[account], "Address is not blacklisted");
-        _blacklist[account] = false;
-        emit AccountUnblacklisted(account);
+    function _unblocklistAccount(address account) private {
+        require(_blocklist[account], "Address is not blocklisted");
+        _blocklist[account] = false;
+        emit AccountUnblocklisted(account);
     }
 
     /**
-     * @notice Blacklists multiple accounts at once
-     * @dev This function can only be called by an account with the BLACKLIST_ROLE
-     * @param addresses An array of addresses to be blacklisted
+     * @notice Blocklists multiple accounts at once.
+     * @dev This function can only be called by an account with BLOCKLIST_ROLE.
+     * @param addresses An array of addresses to be blocklisted.
      */
-    function blacklistAccounts(address[] calldata addresses) external onlyRole(BLACKLIST_ROLE) {
+    function blocklistAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-            _blacklistAccount(addresses[i]);
+            _blocklistAccount(addresses[i]);
         }
     }
 
     /**
-     * @notice Removes multiple accounts from the blacklist at once
-     * @dev This function can only be called by an account with the BLACKLIST_ROLE
-     * @param addresses An array of addresses to be removed from the blacklist
+     * @notice Removes multiple accounts from the blocklist at once.
+     * @dev This function can only be called by an account with BLOCKLIST_ROLE.
+     * @param addresses An array of addresses to be removed from the blocklist.
      */
-    function unblacklistAccounts(address[] calldata addresses) external onlyRole(BLACKLIST_ROLE) {
+    function unblocklistAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-            _unblacklistAccount(addresses[i]);
+            _unblocklistAccount(addresses[i]);
         }
     }
 
     /**
-     * @notice Checks if the specified address is blacklisted
-     * @param account The address to check
-     * @return A boolean value indicating whether the address is blacklisted
+     * @notice Checks if the specified address is blocklisted.
+     * @param account The address to check.
+     * @return A boolean value indicating whether the address is blocklisted.
      */
-    function isBlacklisted(address account) public view returns (bool) {
-        return _blacklist[account];
+    function isBlocklisted(address account) public view returns (bool) {
+        return _blocklist[account];
     }
 
     /**
      * @notice Pauses token transfers and other operations.
-     * @dev Only the contract owner can call this function.
+     * @dev This function can only be called by an account with PAUSE_ROLE.
      * @dev Inherits the _pause function from @openzeppelin/PausableUpgradeable contract.
      */
-    function pause() external onlyOwner {
+    function pause() external onlyRole(PAUSE_ROLE) {
         super._pause();
     }
 
     /**
      * @notice Unpauses token transfers and other operations.
-     * @dev Only the contract owner can call this function.
+     * @dev This function can only be called by an account with PAUSE_ROLE.
      * @dev Inherits the _unpause function from @openzeppelin/PausableUpgradeable contract.
      */
-    function unpause() external onlyOwner {
+    function unpause() external onlyRole(PAUSE_ROLE) {
         super._unpause();
     }
 
     /**
-     * @notice Sets the reward multiplier.
-     * @dev Only users with ORACLE_ROLE can call this function.
+     * @dev Internal function to set the reward multiplier.
      * @param _rewardMultiplier The new reward multiplier.
      */
-    function setRewardMultiplier(uint256 _rewardMultiplier) public onlyRole(ORACLE_ROLE) {
-        require(_rewardMultiplier > 1 ether, "Invalid reward multiplier");
+    function _setRewardMultiplier(uint256 _rewardMultiplier) private {
+        require(_rewardMultiplier >= 1 ether, "Invalid reward multiplier");
         rewardMultiplier = _rewardMultiplier;
 
         emit RewardMultiplier(rewardMultiplier);
     }
 
     /**
-     * @notice Adds the provided interest rate to the current reward multiplier.
-     * @dev Only users with ORACLE_ROLE can call this function.
+     * @notice Sets the reward multiplier.
+     * @dev This function can only be called by an account with ORACLE_ROLE.
+     * @param _rewardMultiplier The new reward multiplier.
+     */
+    function setRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
+        _setRewardMultiplier(_rewardMultiplier);
+    }
+
+    /**
+     * @notice Adds the given amount to the current reward multiplier.
+     * @dev This function can only be called by an account with ORACLE_ROLE.
      * @param _rewardMultiplier The new reward multiplier.
      */
     function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
         require(_rewardMultiplier > 0, "Invalid reward multiplier");
 
-        setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
+        _setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
     }
 
     /**
-     * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
+     * @dev Internal function to set `amount` as the allowance of `spender` over the `owner`s tokens.
      *
      * This private function is equivalent to `approve`, and can be used to
      * e.g. set automatic allowances for certain subsystems, etc.
@@ -421,6 +448,7 @@ contract USDM is
     }
 
     /**
+     * @notice Approves an allowance for a spender.
      * @dev See {IERC20-approve}.
      *
      * NOTE: If `amount` is the maximum `uint256`, the allowance is not updated on
@@ -467,10 +495,9 @@ contract USDM is
     }
 
     /**
+     * @notice Moves tokens from an address to another one using the allowance mechanism.
      * @dev See {IERC20-transferFrom}.
      *
-     * Emits an {Approval} event indicating the updated allowance. This is not
-     * required by the EIP. See the note at the beginning of {ERC20}.
      *
      * Emits an {Approval} event indicating the updated allowance. This is not
      * required by the EIP. This allows applications to reconstruct the allowance
@@ -485,6 +512,9 @@ contract USDM is
      * - `from` must have a balance of at least `amount`.
      * - the caller must have allowance for ``from``'s tokens of at least
      * `amount`.
+     * @param from The address from which tokens will be transferred.
+     * @param to The address to which tokens will be transferred.
+     * @param amount The number of tokens to transfer.
      */
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         address spender = _msgSender();
@@ -495,6 +525,28 @@ contract USDM is
     }
 
     /**
+     * @notice Increases the allowance granted to spender by the caller.
+     * @dev Atomically increases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     * @param spender The address which will spend the funds.
+     * @param addedValue The amount of tokens to increase the allowance by.
+     */
+    function increaseAllowance(address spender, uint256 addedValue) external returns (bool) {
+        address owner = _msgSender();
+        _approve(owner, spender, allowance(owner, spender) + addedValue);
+        return true;
+    }
+
+    /**
+     * @notice Decreases the allowance granted to spender by the caller.
      * @dev Atomically decreases the allowance granted to `spender` by the caller.
      *
      * This is an alternative to {approve} that can be used as a mitigation for
@@ -507,6 +559,8 @@ contract USDM is
      * - `spender` cannot be the zero address.
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
+     * @param spender The address which will spend the funds.
+     * @param subtractedValue The amount of tokens to decrease the allowance by.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool) {
         address owner = _msgSender();
@@ -537,11 +591,10 @@ contract USDM is
     }
 
     /**
-     * @notice Increments and returns the current nonce for a given owner address.
-     * @dev This is an internal function.
+     * @dev Internal function that increments and returns the current nonce for a given owner address.
      * @param owner The address whose nonce is to be incremented.
      */
-    function _useNonce(address owner) internal returns (uint256 current) {
+    function _useNonce(address owner) private returns (uint256 current) {
         CountersUpgradeable.Counter storage nonce = _nonces[owner];
         current = nonce.current();
         nonce.increment();
