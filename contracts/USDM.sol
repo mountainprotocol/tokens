@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
@@ -23,7 +23,7 @@ contract USDM is
     string private _name;
     string private _symbol;
     uint256 private _totalShares;
-    uint256 private constant BASE = 1e18;
+    uint256 private constant _BASE = 1e18;
     uint256 public rewardMultiplier;
 
     mapping(address => uint256) private _shares;
@@ -55,7 +55,7 @@ contract USDM is
     function initialize(string memory name_, string memory symbol_, uint256 initialSupply) external initializer {
         _name = name_;
         _symbol = symbol_;
-        _setRewardMultiplier(BASE);
+        _setRewardMultiplier(_BASE);
 
         __AccessControl_init();
         __Pausable_init();
@@ -109,7 +109,7 @@ contract USDM is
      * @return The equivalent amount of shares.
      */
     function convertToShares(uint256 amount) public view returns (uint256) {
-        return (amount * BASE) / rewardMultiplier;
+        return (amount * _BASE) / rewardMultiplier;
     }
 
     /**
@@ -118,7 +118,7 @@ contract USDM is
      * @return The equivalent amount of tokens.
      */
     function convertToAmount(uint256 shares) public view returns (uint256) {
-        return (shares * rewardMultiplier) / BASE;
+        return (shares * rewardMultiplier) / _BASE;
     }
 
     /**
