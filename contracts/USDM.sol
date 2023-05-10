@@ -24,6 +24,10 @@ contract USDM is
     string private _symbol;
     uint256 private _totalShares;
     uint256 private constant _BASE = 1e18;
+    /**
+     * @dev rewardMultiplier represents a coefficient used in reward calculation logic.
+     * The value is represented with 18 decimal places for precision.
+     */
     uint256 public rewardMultiplier;
 
     mapping(address => uint256) private _shares;
