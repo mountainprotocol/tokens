@@ -4,11 +4,11 @@ This smart contract implements a custom rebasing ERC-20 token with additional fe
 
 ## Features
 
-- OZ Access Control
+- OpenZeppelin Access Control
 - Rebasing token mechanism
 - Minting and burning functionality
-- Blocklisting addresses
-- Pausing
+- Blocklisting accounts
+- Pausing emergency stop mechanism
 - Reward multiplier system
 - EIP-2612 permit support
 - OpenZeppelin UUPS upgrade pattern
@@ -144,9 +144,9 @@ npx hardhat help
 
 #### Roles
 
-- MINTER_ROLE: Grants the ability to mint tokens.
-- BURNER_ROLE: Grants the ability to burn tokens.
-- BLOCKLIST_ROLE: Grants the ability to manage the blocklist.
-- ORACLE_ROLE: Grants the ability to update the reward multiplier.
-- UPGRADE_ROLE: Grants the ability to upgrade the contract.
-- PAUSE_ROLE: Grants the ability to pause/unpause the contract.
+- `MINTER_ROLE`: Grants the ability to mint tokens.
+- `BURNER_ROLE`: Grants the ability to burn tokens.
+- `BLOCKLIST_ROLE`: Grants the ability to manage the blocklist.
+- `ORACLE_ROLE`: Grants the ability to update the reward multiplier.
+- `UPGRADE_ROLE`: Grants the ability to upgrade the contract.
+- `PAUSE_ROLE`: Grants the ability to pause/unpause the contract.
