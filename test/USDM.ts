@@ -90,6 +90,14 @@ describe('USDM', () => {
 
       expect(await contract.rewardMultiplier()).to.equal(parseUnits('1')); // 1 equals to 100%
     });
+
+    it('fails if initialize is called again after initialization', async () => {
+      const { contract } = await loadFixture(deployUSDMFixture);
+
+      await expect(
+        contract.initialize(name, symbol, totalShares)
+      ).to.be.revertedWith('Initializable: contract is already initialized');
+    });
   });
 
   describe('Transfer', () => {
