@@ -20,13 +20,14 @@
     "url": "git+https://github.com/mountainprotocol/tokens.git"
   },
   "author": "Mati <mattiascaricato@gmail.com>",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/mountainprotocol/tokens/issues"
   },
   "homepage": "https://github.com/mountainprotocol/tokens#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomicfoundation/hardhat-foundry": "^1.0.1",
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
     "@openzeppelin/hardhat-upgrades": "^1.22.1",
     "@openzeppelin/test-helpers": "^0.5.16",
