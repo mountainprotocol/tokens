@@ -406,10 +406,10 @@ contract USDM is
 
     /**
      * @notice Sets the reward multiplier.
-     * @dev This function can only be called by an account with ORACLE_ROLE.
+     * @dev This function can only be called by ADMIN_ROLE.
      * @param _rewardMultiplier The new reward multiplier.
      */
-    function setRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
+    function setRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRewardMultiplier(_rewardMultiplier);
     }
 
