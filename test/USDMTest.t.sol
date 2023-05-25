@@ -8,9 +8,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import "../contracts/USDM.sol";
 
 contract UUPSProxy is ERC1967Proxy {
-    constructor(address _implementation, bytes memory _data)
-        ERC1967Proxy(_implementation, _data)
-    {}
+    constructor(address _implementation, bytes memory _data) ERC1967Proxy(_implementation, _data) {}
 }
 
 contract Handler {
