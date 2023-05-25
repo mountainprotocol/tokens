@@ -16,6 +16,17 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Run tests
         run: npm test
+
+  fuzzing:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+    steps:
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Run tests
+        run: forge test -vvv
+
   static-analysis:
     runs-on: ubuntu-latest
     env:
@@ -30,7 +41,8 @@ jobs:
           fail-on: medium
           node-version: 18
           # Exclude openzeppelin contracts analysis and block-timestamp low issue from OZ's permit implementation (ERC2612)
-          slither-args: --filter-paths "openzeppelin"
+          slither-args: --filter-paths "openzeppelin, forge-std"
+
   lint:
     runs-on: ubuntu-latest
     env:
@@ -40,6 +52,7 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Run linter
         run: npm run lint
+
   coverage:
     runs-on: ubuntu-latest
     env:
@@ -55,6 +68,7 @@ jobs:
         if: success() || failure()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
   codespell:
     runs-on: ubuntu-latest
     steps:
