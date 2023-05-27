@@ -4,8 +4,6 @@ on: [push]
 concurrency:
   group: code-quality-${{ github.ref }}
   cancel-in-progress: true
-env:
-  FOUNDRY_PROFILE: ci
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -26,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
+      FOUNDRY_PROFILE: ci
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
