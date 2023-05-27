@@ -13,7 +13,6 @@ jobs:
       FORCE_COLOR: 1
       REPORT_GAS: true
       COIN_MARKETCAP_API_KEY: ${{ secrets.COIN_MARKETCAP_API_KEY }}
-      NODE_ENV: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -24,8 +23,10 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci --ignore-scripts
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
       - name: Run tests
-        run: npx hardhat test
+        run: npm test
 
   fuzzing:
     runs-on: ubuntu-latest
