@@ -14,17 +14,7 @@ jobs:
       REPORT_GAS: true
       COIN_MARKETCAP_API_KEY: ${{ secrets.COIN_MARKETCAP_API_KEY }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 'lts/Hydrogen'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - uses: ./.github/actions/setup
       - name: Run tests
         run: npm test
 
@@ -33,19 +23,7 @@ jobs:
     env:
       FORCE_COLOR: 1
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 'lts/Hydrogen'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - uses: ./.github/actions/setup
       - name: Run tests
         run: forge test -vvv
 
@@ -70,8 +48,6 @@ jobs:
     env:
       FORCE_COLOR: 1
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
       - uses: ./.github/actions/setup
       - name: Run linter
         run: npm run lint
@@ -81,8 +57,6 @@ jobs:
     env:
       FORCE_COLOR: 1
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
       - uses: ./.github/actions/setup
       - name: Run coverage
         run: npm run coverage
@@ -109,7 +83,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/setup
       - name: Run Mythril Analysis
         uses: docker://mythril/myth
         with:
