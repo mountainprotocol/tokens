@@ -1,7 +1,6 @@
 import { HardhatUserConfig } from 'hardhat/config';
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomicfoundation/hardhat-chai-matchers';
-import '@nomicfoundation/hardhat-foundry';
 import '@openzeppelin/hardhat-upgrades';
 import dotenv from 'dotenv';
 
