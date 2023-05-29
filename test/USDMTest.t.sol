@@ -37,21 +37,102 @@ contract USDMInvariants is Test {
 
         usdm.initialize("Mountain Protocol USD", "USDM", 0);
 
+        // Grant minter role
+        usdm.grantRole(keccak256("MINTER_ROLE"), address(this));
+        // Grant burner role
+        usdm.grantRole(keccak256("BURNER_ROLE"), address(this));
+        // Grant oracle role
+        usdm.grantRole(keccak256("ORACLE_ROLE"), address(this));
+
         handler = new Handler(usdm);
 
         // targetContract(address(handler));
         // targetContract(address(implementation));
     }
 
-    function invariant_totalSupply() public {
-        assertEq(usdm.balanceOf(address(this)), usdm.totalSupply());
+    function test_minting(uint256 amountToMint) external {
+        amountToMint = bound(amountToMint, 1e18, 1e28);
+
+        uint256 sharesBefore = usdm.sharesOf(address(this));
+
+        usdm.mint(address(this), amountToMint);
+
+        uint256 sharesAfter = usdm.sharesOf(address(this));
+
+        assertLt(sharesBefore, sharesAfter);
     }
 
-    function invariant_totalShares() public {
-        assertEq(usdm.sharesOf(address(this)), usdm.totalShares());
+    function test_burning(uint256 amountToBurn) external {
+        amountToBurn = bound(amountToBurn, 1e18, 1e28);
+
+        usdm.mint(address(this), amountToBurn);
+
+        vm.expectRevert();
+
+        usdm.burn(address(this), amountToBurn + 1);
+
+        uint256 sharesBefore = usdm.sharesOf(address(this));
+
+        usdm.burn(address(this), amountToBurn);
+
+        uint256 sharesAfter = usdm.sharesOf(address(this));
+
+        assertGt(sharesBefore, sharesAfter);
     }
 
-    function invariant_totalShares_totalSupply() public {
-        assertEq(usdm.totalSupply(), usdm.totalShares());
+    function test_transfering(uint256 amount, address to) external {
+        amount = bound(amount, 0, 1e28);
+        vm.assume(to != address(0));
+
+        // usdm.mint(address(this), amount);
+
+        uint256 sharesBeforeFrom = usdm.sharesOf(address(this));
+        uint256 sharesBeforeTo = usdm.sharesOf(to);
+
+        usdm.transfer(to, amount);
+
+        uint256 sharesAfterFrom = usdm.sharesOf(address(this));
+        uint256 sharesAfterTo = usdm.sharesOf(to);
+
+        assertGe(sharesBeforeFrom, sharesAfterFrom);
+        assertLe(sharesBeforeTo, sharesAfterTo);
     }
+
+    // totalSupply should be ge than totalShares [invariant]
+    function invariant_totalSupplyGeTotalShares() public {
+        assertGe(usdm.totalSupply(), usdm.totalShares());
+    }
+
+    // totalSupply should be gt than totalShares when rewardMultiplier is > 1 [invariant]
+    function test_totalSupplyGtTotalSharesWhenRewardMultiplier(uint256 yield, address to, uint256 amount) public {
+        yield = bound(yield, 3e11, 66e14); // 0.00003% - 0.66%
+        amount = bound(amount, 1e21, 1e28); // 1k - 10B
+        vm.assume(to != address(0));
+
+        usdm.addRewardMultiplier(yield);
+        usdm.mint(to, amount);
+
+        assertGt(usdm.totalSupply(), usdm.totalShares());
+    }
+
+    // transfer shouldn't change totalSupply
+    function test_transferDoesntChangeTotalSupply (uint256 amount, address to) external {
+        vm.assume(amount < 1e28);
+        vm.assume(to != address(0));
+
+        usdm.mint(address(this), amount);
+
+        uint256 totalSupplyBefore = usdm.totalSupply();
+
+        usdm.transfer(to, amount);
+
+        uint256 totalSupplyAfter = usdm.totalSupply();
+
+        assertEq(totalSupplyBefore, totalSupplyAfter);
+    }
+
+    // Sum of all shares should be equal to totalShares [invariant]
+    // balance of address zero should be always zero [invariant]
+    // only mint and burn should change totalShares [invariant] !!!
+    // an address can only transfer at max its own balance and its allowances [invariant] !!!
 }
