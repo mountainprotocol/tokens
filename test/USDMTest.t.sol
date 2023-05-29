@@ -84,7 +84,7 @@ contract USDMInvariants is Test {
         amount = bound(amount, 0, 1e28);
         vm.assume(to != address(0));
 
-        // usdm.mint(address(this), amount);
+        usdm.mint(address(this), amount);
 
         uint256 sharesBeforeFrom = usdm.sharesOf(address(this));
         uint256 sharesBeforeTo = usdm.sharesOf(to);
@@ -116,7 +116,7 @@ contract USDMInvariants is Test {
     }
 
     // transfer shouldn't change totalSupply
-    function test_transferDoesntChangeTotalSupply(uint256 amount, address to) external {
+    function test_transferDoesntChangeTotalSupply (uint256 amount, address to) external {
         vm.assume(amount < 1e28);
         vm.assume(to != address(0));
 
