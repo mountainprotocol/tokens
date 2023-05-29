@@ -15,6 +15,7 @@ const roles = {
   ORACLE: keccak256(toUtf8Bytes('ORACLE_ROLE')),
   UPGRADE: keccak256(toUtf8Bytes('UPGRADE_ROLE')),
   PAUSE: keccak256(toUtf8Bytes('PAUSE_ROLE')),
+  DEFAULT_ADMIN_ROLE: ethers.constants.HashZero,
 };
 
 describe('USDM', () => {
@@ -89,6 +90,14 @@ describe('USDM', () => {
       const { contract } = await loadFixture(deployUSDMFixture);
 
       expect(await contract.rewardMultiplier()).to.equal(parseUnits('1')); // 1 equals to 100%
+    });
+
+    it('fails if initialize is called again after initialization', async () => {
+      const { contract } = await loadFixture(deployUSDMFixture);
+
+      await expect(contract.initialize(name, symbol, totalShares)).to.be.revertedWith(
+        'Initializable: contract is already initialized',
+      );
     });
   });
 
@@ -192,11 +201,11 @@ describe('USDM', () => {
       );
     });
 
-    it('does not set the reward multiplier without oracle role', async () => {
-      const { contract, owner } = await loadFixture(deployUSDMFixture);
+    it('does not set the reward multiplier without admin role', async () => {
+      const { contract, acc1 } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.setRewardMultiplier(1)).to.be.revertedWith(
-        `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.ORACLE}`,
+      await expect(contract.connect(acc1).setRewardMultiplier(1)).to.be.revertedWith(
+        `AccessControl: account ${acc1.address.toLowerCase()} is missing role ${roles.DEFAULT_ADMIN_ROLE}`,
       );
     });
 

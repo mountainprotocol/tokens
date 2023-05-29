@@ -1,5 +1,5 @@
 name: code-quality
-run-name: ${{ github.event.head_commit.message }} on ${{ github.ref_name }}
+run-name: Deploy by @${{ github.actor }}
 on: [push]
 concurrency:
   group: code-quality-${{ github.ref }}
@@ -12,10 +12,28 @@ jobs:
       REPORT_GAS: true
       COIN_MARKETCAP_API_KEY: ${{ secrets.COIN_MARKETCAP_API_KEY }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - uses: ./.github/actions/setup
       - name: Run tests
         run: npm test
+
+  fuzzing:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      FOUNDRY_PROFILE: ci
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - name: Run tests
+        run: forge test -vvv
+
   static-analysis:
     runs-on: ubuntu-latest
     env:
@@ -30,22 +48,26 @@ jobs:
           fail-on: medium
           node-version: 18
           # Exclude openzeppelin contracts analysis and block-timestamp low issue from OZ's permit implementation (ERC2612)
-          slither-args: --filter-paths "openzeppelin"
+          slither-args: --filter-paths "openzeppelin|forge-std|test"
+
   lint:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
       - uses: ./.github/actions/setup
       - name: Run linter
         run: npm run lint
+
   coverage:
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
       - uses: ./.github/actions/setup
       - name: Run coverage
         run: npm run coverage
@@ -55,6 +77,7 @@ jobs:
         if: success() || failure()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
   codespell:
     runs-on: ubuntu-latest
     steps:

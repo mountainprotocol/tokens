@@ -20,7 +20,7 @@
     "url": "git+https://github.com/mountainprotocol/tokens.git"
   },
   "author": "Mati <mattiascaricato@gmail.com>",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/mountainprotocol/tokens/issues"
   },
