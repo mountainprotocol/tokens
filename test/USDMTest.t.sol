@@ -116,7 +116,7 @@ contract USDMInvariants is Test {
     }
 
     // transfer shouldn't change totalSupply
-    function test_transferDoesntChangeTotalSupply (uint256 amount, address to) external {
+    function test_transferDoesntChangeTotalSupply(uint256 amount, address to) external {
         vm.assume(amount < 1e28);
         vm.assume(to != address(0));
 
