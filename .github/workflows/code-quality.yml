@@ -1,5 +1,5 @@
 name: code-quality
-run-name: Deploy by @${{ github.actor }}
+run-name: Commit by @${{ github.actor }}
 on: [push]
 concurrency:
   group: code-quality-${{ github.ref }}
