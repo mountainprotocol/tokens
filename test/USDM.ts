@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ethers, upgrades } from 'hardhat';
 import { Contract, BigNumber, constants } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { loadFixture, time, impersonateAccount } from '@nomicfoundation/hardhat-network-helpers';
+import { loadFixture, time } from '@nomicfoundation/hardhat-network-helpers';
 import { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-signer';
 import { parseUnits, keccak256, toUtf8Bytes, defaultAbiCoder, id, splitSignature } from 'ethers/lib/utils';
 
@@ -147,7 +147,7 @@ describe('USDM', () => {
 
       await expect(contract.transfer(AddressZero, amount))
         .to.be.revertedWithCustomError(contract, 'ERC20InvalidReceiver')
-        .withArgs(AddressZero)
+        .withArgs(AddressZero);
     });
 
     it('takes tokens amount as argument but transfers shares', async () => {
@@ -396,8 +396,7 @@ describe('USDM', () => {
       await contract.grantRole(roles.BLOCKLIST, owner.address);
       await contract.blocklistAccounts([acc1.address]);
 
-      await expect(contract.transfer(acc1.address, 1))
-        .to.not.be.revertedWithCustomError(contract, 'USDMBlockedSender');
+      await expect(contract.transfer(acc1.address, 1)).to.not.be.revertedWithCustomError(contract, 'USDMBlockedSender');
     });
 
     it('does not add an account already blocklisted', async () => {
@@ -453,8 +452,10 @@ describe('USDM', () => {
       await contract.pause();
       await contract.unpause();
 
-      await expect(contract.mint(acc1.address, tokensAmount))
-        .to.not.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
+      await expect(contract.mint(acc1.address, tokensAmount)).to.not.be.revertedWithCustomError(
+        contract,
+        'USDMPausedTransfers',
+      );
     });
 
     it('does not allow minting when paused', async () => {
@@ -465,8 +466,10 @@ describe('USDM', () => {
       await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
-      await expect(contract.mint(owner.address, tokensAmount))
-        .to.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
+      await expect(contract.mint(owner.address, tokensAmount)).to.be.revertedWithCustomError(
+        contract,
+        'USDMPausedTransfers',
+      );
     });
 
     it('allows burning when unpaused', async () => {
@@ -478,8 +481,10 @@ describe('USDM', () => {
       await contract.pause();
       await contract.unpause();
 
-      await expect(contract.burn(owner.address, tokensAmount))
-        .to.not.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
+      await expect(contract.burn(owner.address, tokensAmount)).to.not.be.revertedWithCustomError(
+        contract,
+        'USDMPausedTransfers',
+      );
     });
 
     it('does not allow burning when paused', async () => {
@@ -490,8 +495,10 @@ describe('USDM', () => {
       await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
-      await expect(contract.burn(owner.address, tokensAmount))
-        .to.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
+      await expect(contract.burn(owner.address, tokensAmount)).to.be.revertedWithCustomError(
+        contract,
+        'USDMPausedTransfers',
+      );
     });
 
     it('allows transfers when unpaused', async () => {
@@ -502,8 +509,10 @@ describe('USDM', () => {
       await contract.pause();
       await contract.unpause();
 
-      await expect(contract.transfer(acc1.address, tokensAmount))
-        .to.not.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
+      await expect(contract.transfer(acc1.address, tokensAmount)).to.not.be.revertedWithCustomError(
+        contract,
+        'USDMPausedTransfers',
+      );
     });
 
     it('does not allow transfers when paused', async () => {
@@ -513,8 +522,10 @@ describe('USDM', () => {
       await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
-      await expect(contract.transfer(acc1.address, tokensAmount))
-        .to.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
+      await expect(contract.transfer(acc1.address, tokensAmount)).to.be.revertedWithCustomError(
+        contract,
+        'USDMPausedTransfers',
+      );
     });
   });
 

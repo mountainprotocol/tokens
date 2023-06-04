@@ -71,7 +71,6 @@ contract USDM is
     error USDMInvalidBlocklistAccount(address account);
     error USDMPausedTransfers();
 
-
     /**
      * @notice Initializes the contract.
      * @param name_ The name of the token.
@@ -448,7 +447,7 @@ contract USDM is
      * @param _rewardMultiplier The new reward multiplier.
      */
     function _setRewardMultiplier(uint256 _rewardMultiplier) private {
-        if(_rewardMultiplier < 1 ether) {
+        if (_rewardMultiplier < 1 ether) {
             revert USDMInvalidRewardMultiplier(_rewardMultiplier);
         }
 
@@ -472,7 +471,7 @@ contract USDM is
      * @param _rewardMultiplier The new reward multiplier.
      */
     function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
-        if(_rewardMultiplier <= 0) {
+        if (_rewardMultiplier <= 0) {
             revert USDMInvalidRewardMultiplier(_rewardMultiplier);
         }
 
@@ -547,7 +546,7 @@ contract USDM is
         uint256 currentAllowance = allowance(owner, spender);
 
         if (currentAllowance != type(uint256).max) {
-            if(currentAllowance < amount) {
+            if (currentAllowance < amount) {
                 revert ERC20InsufficientAllowance(spender, currentAllowance, amount);
             }
 
@@ -632,7 +631,7 @@ contract USDM is
         address owner = _msgSender();
         uint256 currentAllowance = allowance(owner, spender);
 
-        if(currentAllowance < subtractedValue) {
+        if (currentAllowance < subtractedValue) {
             revert ERC20InsufficientAllowance(spender, currentAllowance, subtractedValue);
         }
 
