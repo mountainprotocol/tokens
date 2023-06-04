@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ethers, upgrades } from 'hardhat';
 import { Contract, BigNumber, constants } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { loadFixture, time } from '@nomicfoundation/hardhat-network-helpers';
+import { loadFixture, time, impersonateAccount } from '@nomicfoundation/hardhat-network-helpers';
 import { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-signer';
 import { parseUnits, keccak256, toUtf8Bytes, defaultAbiCoder, id, splitSignature } from 'ethers/lib/utils';
 
@@ -126,9 +126,9 @@ describe('USDM', () => {
 
       const balance = await contract.balanceOf(owner.address);
 
-      await expect(contract.transfer(acc1.address, balance.add(1))).to.be.revertedWith(
-        'ERC20: transfer amount exceeds balance',
-      );
+      await expect(contract.transfer(acc1.address, balance.add(1)))
+        .to.be.revertedWithCustomError(contract, 'ERC20InsufficientBalance')
+        .withArgs(owner.address, balance, balance.add(1));
     });
 
     it('emits a transfer events', async () => {
@@ -145,10 +145,12 @@ describe('USDM', () => {
 
       const amount = parseUnits('1');
 
-      await expect(contract.transfer(AddressZero, amount)).to.be.revertedWith('ERC20: transfer to the zero address');
+      await expect(contract.transfer(AddressZero, amount))
+        .to.be.revertedWithCustomError(contract, 'ERC20InvalidReceiver')
+        .withArgs(AddressZero)
     });
 
-    it('takes supply amount as argument but transfers shares', async () => {
+    it('takes tokens amount as argument but transfers shares', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const amount = parseUnits('100');
       const rewardMultiplier = parseUnits('1.0001'); // 1bps
@@ -382,7 +384,9 @@ describe('USDM', () => {
       await contract.grantRole(roles.BLOCKLIST, owner.address);
       await contract.blocklistAccounts([owner.address]);
 
-      await expect(contract.transfer(acc1.address, 1)).to.be.revertedWith('Address is blocklisted');
+      await expect(contract.transfer(acc1.address, 1))
+        .to.be.revertedWithCustomError(contract, 'USDMBlockedSender')
+        .withArgs(owner.address);
     });
 
     it('allows transfers to blocklisted accounts', async () => {
@@ -392,7 +396,8 @@ describe('USDM', () => {
       await contract.grantRole(roles.BLOCKLIST, owner.address);
       await contract.blocklistAccounts([acc1.address]);
 
-      await expect(contract.transfer(acc1.address, 1)).to.not.be.revertedWith('Address is blocklisted');
+      await expect(contract.transfer(acc1.address, 1))
+        .to.not.be.revertedWithCustomError(contract, 'USDMBlockedSender');
     });
 
     it('does not add an account already blocklisted', async () => {
@@ -401,7 +406,9 @@ describe('USDM', () => {
       await contract.grantRole(roles.BLOCKLIST, owner.address);
       await contract.blocklistAccounts([acc1.address]);
 
-      await expect(contract.blocklistAccounts([acc1.address])).to.be.revertedWith('Address already blocklisted');
+      await expect(contract.blocklistAccounts([acc1.address]))
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlocklistAccount')
+        .withArgs(acc1.address);
     });
 
     it('does not unblocklist an account not blocklisted', async () => {
@@ -409,7 +416,9 @@ describe('USDM', () => {
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.unblocklistAccounts([owner.address])).to.be.revertedWith('Address is not blocklisted');
+      await expect(contract.unblocklistAccounts([owner.address]))
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlocklistAccount')
+        .withArgs(owner.address);
     });
 
     it('reverts when blocklisting repeated accounts', async () => {
@@ -417,9 +426,9 @@ describe('USDM', () => {
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.blocklistAccounts([acc1.address, acc2.address, acc2.address])).to.be.revertedWith(
-        'Address already blocklisted',
-      );
+      await expect(contract.blocklistAccounts([acc1.address, acc2.address, acc2.address]))
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlocklistAccount')
+        .withArgs(acc2.address);
     });
 
     it('reverts when unblocklisting repeated accounts', async () => {
@@ -428,9 +437,9 @@ describe('USDM', () => {
       await contract.grantRole(roles.BLOCKLIST, owner.address);
       await contract.blocklistAccounts([acc1.address, acc2.address]);
 
-      await expect(contract.unblocklistAccounts([acc1.address, acc2.address, acc2.address])).to.be.revertedWith(
-        'Address is not blocklisted',
-      );
+      await expect(contract.unblocklistAccounts([acc1.address, acc2.address, acc2.address]))
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlocklistAccount')
+        .withArgs(acc2.address);
     });
   });
 
@@ -444,9 +453,8 @@ describe('USDM', () => {
       await contract.pause();
       await contract.unpause();
 
-      await expect(contract.mint(acc1.address, tokensAmount)).to.not.be.revertedWith(
-        'Transfers not allowed while paused',
-      );
+      await expect(contract.mint(acc1.address, tokensAmount))
+        .to.not.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
     });
 
     it('does not allow minting when paused', async () => {
@@ -457,7 +465,8 @@ describe('USDM', () => {
       await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
-      await expect(contract.mint(owner.address, tokensAmount)).to.be.revertedWith('Transfers not allowed while paused');
+      await expect(contract.mint(owner.address, tokensAmount))
+        .to.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
     });
 
     it('allows burning when unpaused', async () => {
@@ -469,9 +478,8 @@ describe('USDM', () => {
       await contract.pause();
       await contract.unpause();
 
-      await expect(contract.burn(owner.address, tokensAmount)).to.not.be.revertedWith(
-        'Transfers not allowed while paused',
-      );
+      await expect(contract.burn(owner.address, tokensAmount))
+        .to.not.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
     });
 
     it('does not allow burning when paused', async () => {
@@ -482,7 +490,8 @@ describe('USDM', () => {
       await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
-      await expect(contract.burn(owner.address, tokensAmount)).to.be.revertedWith('Transfers not allowed while paused');
+      await expect(contract.burn(owner.address, tokensAmount))
+        .to.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
     });
 
     it('allows transfers when unpaused', async () => {
@@ -493,9 +502,8 @@ describe('USDM', () => {
       await contract.pause();
       await contract.unpause();
 
-      await expect(contract.transfer(acc1.address, tokensAmount)).to.not.be.revertedWith(
-        'Transfers not allowed while paused',
-      );
+      await expect(contract.transfer(acc1.address, tokensAmount))
+        .to.not.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
     });
 
     it('does not allow transfers when paused', async () => {
@@ -505,9 +513,8 @@ describe('USDM', () => {
       await contract.grantRole(roles.PAUSE, owner.address);
       await contract.pause();
 
-      await expect(contract.transfer(acc1.address, tokensAmount)).to.be.revertedWith(
-        'Transfers not allowed while paused',
-      );
+      await expect(contract.transfer(acc1.address, tokensAmount))
+        .to.be.revertedWithCustomError(contract, 'USDMPausedTransfers');
     });
   });
 
@@ -519,12 +526,14 @@ describe('USDM', () => {
       expect(actual).to.be.closeTo(expected, parseUnits(error));
     };
 
-    it('does not support reward multiplier lower than zero', async () => {
+    it('does not support adding a reward multiplier lower than zero', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      await expect(contract.addRewardMultiplier(0)).to.be.revertedWith('Invalid reward multiplier');
+      await expect(contract.addRewardMultiplier(0))
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidRewardMultiplier')
+        .withArgs(0);
     });
 
     it('adds a reward multiplier and emits event with the new value', async () => {
@@ -555,14 +564,16 @@ describe('USDM', () => {
       expect(await contract.rewardMultiplier()).to.equal(rewardMultiplier);
     });
 
-    it('does not support setting a reward multiplier below 100%', async () => {
+    it('does not support setting a reward multiplier below one', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const rewardMultiplier = parseUnits('0.99'); // 1 equals to 100%
+      const rewardMultiplier = parseUnits('0.99999'); // 1 equals to 100%
 
-      await expect(contract.setRewardMultiplier(rewardMultiplier)).to.be.revertedWith('Invalid reward multiplier');
+      await expect(contract.setRewardMultiplier(rewardMultiplier))
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidRewardMultiplier')
+        .withArgs(rewardMultiplier);
     });
 
     it('updates the total supply according to the new reward multiplier', async () => {
@@ -697,7 +708,7 @@ describe('USDM', () => {
   });
 
   describe('Mint', () => {
-    it('increments total shares when mint', async () => {
+    it('increments total shares', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -710,7 +721,7 @@ describe('USDM', () => {
       expect(await contract.totalShares()).to.equal(totalShares.add(amount));
     });
 
-    it('increments total supply when mint', async () => {
+    it('increments total supply', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.MINTER, owner.address);
@@ -769,12 +780,14 @@ describe('USDM', () => {
 
       const amount = parseUnits('1');
 
-      await expect(contract.mint(AddressZero, amount)).to.be.revertedWith('ERC20: mint to the zero address');
+      await expect(contract.mint(AddressZero, amount))
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidMintReceiver')
+        .withArgs(AddressZero);
     });
   });
 
   describe('Burn', () => {
-    it('decrements account shares when burning', async () => {
+    it('decrements account shares', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
@@ -787,7 +800,7 @@ describe('USDM', () => {
       expect(await contract.sharesOf(owner.address)).to.equal(accountShares.sub(burnAmount));
     });
 
-    it('decrements total shares quantity when burning', async () => {
+    it('decrements total shares quantity', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BURNER, owner.address);
@@ -805,7 +818,9 @@ describe('USDM', () => {
 
       await contract.grantRole(roles.BURNER, owner.address);
 
-      await expect(contract.burn(AddressZero, 1)).to.be.revertedWith('ERC20: burn from the zero address');
+      await expect(contract.burn(AddressZero, 1))
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBurnSender')
+        .withArgs(AddressZero);
     });
 
     it('does not allow burning when amount exceeds balance', async () => {
@@ -814,9 +829,9 @@ describe('USDM', () => {
       await contract.grantRole(roles.BURNER, owner.address);
       const balance = await contract.balanceOf(owner.address);
 
-      await expect(contract.burn(owner.address, balance.add(1))).to.be.revertedWith(
-        'ERC20: burn amount exceeds balance',
-      );
+      await expect(contract.burn(owner.address, balance.add(1)))
+        .to.be.revertedWithCustomError(contract, 'USDMInsufficientBurnBalance')
+        .withArgs(owner.address, balance, balance.add(1));
     });
 
     it('emits a transfer events', async () => {
@@ -851,7 +866,9 @@ describe('USDM', () => {
     it('reverts when spender is the zero address', async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.approve(AddressZero, 1)).to.revertedWith('ERC20: approve to the zero address');
+      await expect(contract.approve(AddressZero, 1))
+        .to.revertedWithCustomError(contract, 'ERC20InvalidSpender')
+        .withArgs(AddressZero);
     });
 
     it('emits an approval event', async () => {
@@ -916,9 +933,9 @@ describe('USDM', () => {
       const { contract } = await loadFixture(deployUSDMFixture);
       const amount = 1;
 
-      await expect(contract.increaseAllowance(AddressZero, amount)).to.be.revertedWith(
-        'ERC20: approve to the zero address',
-      );
+      await expect(contract.increaseAllowance(AddressZero, amount))
+        .to.be.revertedWithCustomError(contract, 'ERC20InvalidSpender')
+        .withArgs(AddressZero);
     });
   });
 
@@ -926,54 +943,58 @@ describe('USDM', () => {
     it('reverts when there was no approved amount before decreasing', async () => {
       const { contract, acc1 } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.decreaseAllowance(acc1.address, 1)).to.be.revertedWith(
-        'ERC20: decreased allowance below zero',
-      );
+      await expect(contract.decreaseAllowance(acc1.address, 1))
+        .to.be.revertedWithCustomError(contract, 'ERC20InsufficientAllowance')
+        .withArgs(acc1.address, 0, 1);
     });
 
     it('decreases the spender allowance substracting the requested amount', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const spender = acc1.address;
       const amount = 2;
       const subtractedAmount = 1;
 
-      await contract.approve(acc1.address, amount);
-      await contract.decreaseAllowance(acc1.address, subtractedAmount);
+      await contract.approve(spender, amount);
+      await contract.decreaseAllowance(spender, subtractedAmount);
 
-      expect(await contract.allowance(owner.address, acc1.address)).to.be.equal(amount - subtractedAmount);
+      expect(await contract.allowance(owner.address, spender)).to.be.equal(amount - subtractedAmount);
     });
 
     it('sets allowance to zero when all allowance is removed', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const spender = acc1.address;
       const amount = 1;
       const subtractedAmount = 1;
 
-      await contract.approve(acc1.address, amount);
-      await contract.decreaseAllowance(acc1.address, subtractedAmount);
+      await contract.approve(spender, amount);
+      await contract.decreaseAllowance(spender, subtractedAmount);
 
-      expect(await contract.allowance(owner.address, acc1.address)).to.be.equal(0);
+      expect(await contract.allowance(owner.address, spender)).to.be.equal(0);
     });
 
     it('reverts when more than the allowance is substracted', async () => {
       const { contract, acc1 } = await loadFixture(deployUSDMFixture);
+      const spender = acc1.address;
       const amount = 1;
 
-      await contract.approve(acc1.address, amount);
+      await contract.approve(spender, amount);
 
-      await expect(contract.decreaseAllowance(acc1.address, amount + 1)).to.be.revertedWith(
-        'ERC20: decreased allowance below zero',
-      );
+      await expect(contract.decreaseAllowance(spender, amount + 1))
+        .to.be.revertedWithCustomError(contract, 'ERC20InsufficientAllowance')
+        .withArgs(spender, amount, amount + 1);
     });
 
     it('emits an approval event', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
+      const spender = acc1.address;
       const amount = 2;
       const subtractedAmount = 1;
 
-      await contract.approve(acc1.address, amount);
+      await contract.approve(spender, amount);
 
-      await expect(await contract.decreaseAllowance(acc1.address, subtractedAmount))
+      await expect(await contract.decreaseAllowance(spender, subtractedAmount))
         .to.emit(contract, 'Approval')
-        .withArgs(owner.address, acc1.address, amount - subtractedAmount);
+        .withArgs(owner.address, spender, amount - subtractedAmount);
     });
   });
 
@@ -1024,9 +1045,9 @@ describe('USDM', () => {
 
       await contract.approve(to, amount);
 
-      await expect(contract.connect(acc1).transferFrom(from, to, amount + 1)).to.be.revertedWith(
-        'ERC20: insufficient allowance',
-      );
+      await expect(contract.connect(acc1).transferFrom(from, to, amount + 1))
+        .to.be.revertedWithCustomError(contract, 'ERC20InsufficientAllowance')
+        .withArgs(to, amount, amount + 1);
     });
 
     it('emits a transfer event', async () => {
@@ -1055,18 +1076,17 @@ describe('USDM', () => {
         .withArgs(from, to, amount - 1);
     });
 
-    it('reverts when owner does not have enough balance', async () => {
+    it('reverts when enough allowance but not have enough balance', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
       const from = owner.address;
       const to = acc1.address;
       const amount = await contract.balanceOf(from);
 
-      await contract.approve(to, amount);
-      await contract.transfer(to, 1);
+      await contract.approve(to, amount.add(1));
 
-      await expect(contract.connect(acc1).transferFrom(from, to, amount)).to.revertedWith(
-        'ERC20: transfer amount exceeds balance',
-      );
+      await expect(contract.connect(acc1).transferFrom(from, to, amount.add(1)))
+        .to.be.revertedWithCustomError(contract, 'ERC20InsufficientBalance')
+        .withArgs(from, amount, amount.add(1));
     });
 
     it('decreases allowance by amount of tokens, not by shares', async () => {
@@ -1180,7 +1200,7 @@ describe('USDM', () => {
       expect(await contract.allowance(owner.address, spender.address)).to.equal(value);
     });
 
-    it('rejects reused signature', async () => {
+    it('reverts reused signature', async () => {
       const { contract, owner, acc1: spender } = await loadFixture(deployUSDMFixture);
       const value = 100;
       const nonce = await contract.nonces(owner.address);
@@ -1191,12 +1211,12 @@ describe('USDM', () => {
 
       await contract.permit(owner.address, spender.address, value, deadline, v, r, s);
 
-      await expect(contract.permit(owner.address, spender.address, value, deadline, v, r, s)).to.be.revertedWith(
-        'ERC20Permit: invalid signature',
-      );
+      await expect(contract.permit(owner.address, spender.address, value, deadline, v, r, s))
+        .to.be.revertedWithCustomError(contract, 'ERC2612InvalidSignature')
+        .withArgs(owner.address, spender.address);
     });
 
-    it('rejects other signature', async () => {
+    it('reverts other signature', async () => {
       const { contract, owner, acc1: spender, acc2: otherAcc } = await loadFixture(deployUSDMFixture);
       const value = 100;
       const nonce = await contract.nonces(owner.address);
@@ -1205,23 +1225,28 @@ describe('USDM', () => {
       const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
       const { v, r, s } = await signTypedData(otherAcc, domain, types, message);
 
-      await expect(contract.permit(owner.address, spender.address, value, deadline, v, r, s)).to.be.revertedWith(
-        'ERC20Permit: invalid signature',
-      );
+      await expect(contract.permit(owner.address, spender.address, value, deadline, v, r, s))
+        .to.be.revertedWithCustomError(contract, 'ERC2612InvalidSignature')
+        .withArgs(owner.address, spender.address);
     });
 
-    it('rejects expired permit', async () => {
+    it('reverts expired permit', async () => {
       const { contract, owner, acc1: spender } = await loadFixture(deployUSDMFixture);
       const value = 100;
       const nonce = await contract.nonces(owner.address);
-      const deadline = (await time.latest()) - time.duration.weeks(1);
+      const deadline = await time.latest();
+
+      // advance time by one hour and mine a new block
+      await time.increase(3600);
+
+      const blockTimestamp = await time.latest();
 
       const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
       const { v, r, s } = await signTypedData(owner, domain, types, message);
 
-      await expect(contract.permit(owner.address, spender.address, value, deadline, v, r, s)).to.be.revertedWith(
-        'ERC20Permit: expired deadline',
-      );
+      await expect(contract.permit(owner.address, spender.address, value, deadline, v, r, s))
+        .to.be.revertedWithCustomError(contract, 'ERC2612ExpiredDeadline')
+        .withArgs(deadline, blockTimestamp + 1); // for some reason when transaction is mined the timestamp is one second ahead
     });
   });
 });

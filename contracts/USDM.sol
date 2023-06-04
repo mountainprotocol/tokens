@@ -50,6 +50,29 @@ contract USDM is
     event RewardMultiplier(uint256 indexed value);
 
     /**
+     * Standard ERC20 Errors
+     * @dev See https://eips.ethereum.org/EIPS/eip-6093
+     */
+    error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
+    error ERC20InvalidSender(address sender);
+    error ERC20InvalidReceiver(address receiver);
+    error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
+    error ERC20InvalidApprover(address approver);
+    error ERC20InvalidSpender(address spender);
+    // ERC2612 Errors
+    error ERC2612ExpiredDeadline(uint256 deadline, uint256 blockTimestamp);
+    error ERC2612InvalidSignature(address owner, address spender);
+    // USDM Errors
+    error USDMInvalidMintReceiver(address receiver);
+    error USDMInvalidBurnSender(address sender);
+    error USDMInsufficientBurnBalance(address sender, uint256 balance, uint256 needed);
+    error USDMInvalidRewardMultiplier(uint256 rewardMultiplier);
+    error USDMBlockedSender(address sender);
+    error USDMInvalidBlocklistAccount(address account);
+    error USDMPausedTransfers();
+
+
+    /**
      * @notice Initializes the contract.
      * @param name_ The name of the token.
      * @param symbol_ The symbol of the token.
@@ -175,7 +198,9 @@ contract USDM is
      * @param amount The number of tokens to mint.
      */
     function _mint(address to, uint256 amount) private {
-        require(to != address(0), "ERC20: mint to the zero address");
+        if (to == address(0)) {
+            revert USDMInvalidMintReceiver(to);
+        }
 
         _beforeTokenTransfer(address(0), to, amount);
 
@@ -214,14 +239,19 @@ contract USDM is
      * @param amount The amount of tokens to burn.
      */
     function _burn(address account, uint256 amount) private {
-        require(account != address(0), "ERC20: burn from the zero address");
+        if (account == address(0)) {
+            revert USDMInvalidBurnSender(account);
+        }
 
         _beforeTokenTransfer(account, address(0), amount);
 
         uint256 shares = convertToShares(amount);
-
         uint256 accountShares = sharesOf(account);
-        require(accountShares >= shares, "ERC20: burn amount exceeds balance");
+
+        if (accountShares < shares) {
+            revert USDMInsufficientBurnBalance(account, accountShares, shares);
+        }
+
         unchecked {
             _shares[account] = accountShares - shares;
             // Overflow not possible: amount <= accountShares <= totalShares.
@@ -256,11 +286,15 @@ contract USDM is
     function _beforeTokenTransfer(address from, address /* to */, uint256 /* amount */) private view {
         // Each blocklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
-        require(!isBlocklisted(from), "Address is blocklisted");
+        if (isBlocklisted(from)) {
+            revert USDMBlockedSender(from);
+        }
         // Useful for scenarios such as preventing trades until the end of an evaluation
         // period, or having an emergency switch for freezing all token transfers in the
         // event of a large bug.
-        require(!paused(), "Transfers not allowed while paused");
+        if (paused()) {
+            revert USDMPausedTransfers();
+        }
     }
 
     /**
@@ -292,14 +326,22 @@ contract USDM is
      * @param amount The number of tokens to transfer.
      */
     function _transfer(address from, address to, uint256 amount) private {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
+        if (from == address(0)) {
+            revert ERC20InvalidSender(from);
+        }
+        if (to == address(0)) {
+            revert ERC20InvalidReceiver(to);
+        }
 
         _beforeTokenTransfer(from, to, amount);
 
         uint256 shares = convertToShares(amount);
         uint256 fromShares = _shares[from];
-        require(fromShares >= shares, "ERC20: transfer amount exceeds balance");
+
+        if (fromShares < shares) {
+            revert ERC20InsufficientBalance(from, fromShares, shares);
+        }
+
         unchecked {
             _shares[from] = fromShares - shares;
             // Overflow not possible: the sum of all shares is capped by totalShares, and the sum is preserved by
@@ -319,6 +361,7 @@ contract USDM is
      */
     function transfer(address to, uint256 amount) external returns (bool) {
         address owner = _msgSender();
+
         _transfer(owner, to, amount);
 
         return true;
@@ -329,8 +372,12 @@ contract USDM is
      * @param account The address to blocklist.
      */
     function _blocklistAccount(address account) private {
-        require(!_blocklist[account], "Address already blocklisted");
+        if (isBlocklisted(account)) {
+            revert USDMInvalidBlocklistAccount(account);
+        }
+
         _blocklist[account] = true;
+
         emit AccountBlocklisted(account);
     }
 
@@ -339,7 +386,10 @@ contract USDM is
      * @param account The address to remove from the blocklist.
      */
     function _unblocklistAccount(address account) private {
-        require(_blocklist[account], "Address is not blocklisted");
+        if (!isBlocklisted(account)) {
+            revert USDMInvalidBlocklistAccount(account);
+        }
+
         _blocklist[account] = false;
         emit AccountUnblocklisted(account);
     }
@@ -398,7 +448,10 @@ contract USDM is
      * @param _rewardMultiplier The new reward multiplier.
      */
     function _setRewardMultiplier(uint256 _rewardMultiplier) private {
-        require(_rewardMultiplier >= 1 ether, "Invalid reward multiplier");
+        if(_rewardMultiplier < 1 ether) {
+            revert USDMInvalidRewardMultiplier(_rewardMultiplier);
+        }
+
         rewardMultiplier = _rewardMultiplier;
 
         emit RewardMultiplier(rewardMultiplier);
@@ -419,7 +472,9 @@ contract USDM is
      * @param _rewardMultiplier The new reward multiplier.
      */
     function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
-        require(_rewardMultiplier > 0, "Invalid reward multiplier");
+        if(_rewardMultiplier <= 0) {
+            revert USDMInvalidRewardMultiplier(_rewardMultiplier);
+        }
 
         _setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
     }
@@ -438,10 +493,15 @@ contract USDM is
      * - `spender` cannot be the zero address.
      */
     function _approve(address owner, address spender, uint256 amount) private {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+        if (owner == address(0)) {
+            revert ERC20InvalidApprover(owner);
+        }
+        if (spender == address(0)) {
+            revert ERC20InvalidSpender(spender);
+        }
 
         _allowances[owner][spender] = amount;
+
         emit Approval(owner, spender, amount);
     }
 
@@ -458,6 +518,7 @@ contract USDM is
      */
     function approve(address spender, uint256 amount) external returns (bool) {
         address owner = _msgSender();
+
         _approve(owner, spender, amount);
 
         return true;
@@ -484,8 +545,12 @@ contract USDM is
      */
     function _spendAllowance(address owner, address spender, uint256 amount) private {
         uint256 currentAllowance = allowance(owner, spender);
+
         if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC20: insufficient allowance");
+            if(currentAllowance < amount) {
+                revert ERC20InsufficientAllowance(spender, currentAllowance, amount);
+            }
+
             unchecked {
                 _approve(owner, spender, currentAllowance - amount);
             }
@@ -516,6 +581,7 @@ contract USDM is
      */
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         address spender = _msgSender();
+
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
 
@@ -539,7 +605,9 @@ contract USDM is
      */
     function increaseAllowance(address spender, uint256 addedValue) external returns (bool) {
         address owner = _msgSender();
+
         _approve(owner, spender, allowance(owner, spender) + addedValue);
+
         return true;
     }
 
@@ -563,7 +631,11 @@ contract USDM is
     function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool) {
         address owner = _msgSender();
         uint256 currentAllowance = allowance(owner, spender);
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+
+        if(currentAllowance < subtractedValue) {
+            revert ERC20InsufficientAllowance(spender, currentAllowance, subtractedValue);
+        }
+
         unchecked {
             _approve(owner, spender, currentAllowance - subtractedValue);
         }
@@ -595,6 +667,7 @@ contract USDM is
     function _useNonce(address owner) private returns (uint256 current) {
         CountersUpgradeable.Counter storage nonce = _nonces[owner];
         current = nonce.current();
+
         nonce.increment();
     }
 
@@ -618,14 +691,17 @@ contract USDM is
         bytes32 r,
         bytes32 s
     ) external {
-        require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
+        if (block.timestamp > deadline) {
+            revert ERC2612ExpiredDeadline(deadline, block.timestamp);
+        }
 
         bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));
-
         bytes32 hash = _hashTypedDataV4(structHash);
-
         address signer = ECDSAUpgradeable.recover(hash, v, r, s);
-        require(signer == owner, "ERC20Permit: invalid signature");
+
+        if (signer != owner) {
+            revert ERC2612InvalidSignature(owner, spender);
+        }
 
         _approve(owner, spender, value);
     }
