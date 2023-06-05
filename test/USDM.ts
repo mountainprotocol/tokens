@@ -147,7 +147,7 @@ describe('USDM', () => {
       // Fund the zero address to pay for the transaction
       await owner.sendTransaction({
         to: signerZero.address,
-        value: parseUnits('1') // Send 1 ETH
+        value: parseUnits('1'), // Send 1 ETH
       });
 
       await expect(contract.connect(signerZero).transfer(signerZero.address, 1))
@@ -896,7 +896,7 @@ describe('USDM', () => {
       // Fund the zero address to pay for the transaction
       await owner.sendTransaction({
         to: signerZero.address,
-        value: parseUnits('1') // Send 1 ETH
+        value: parseUnits('1'), // Send 1 ETH
       });
 
       await expect(contract.connect(signerZero).approve(AddressZero, 1))
@@ -1277,11 +1277,12 @@ describe('USDM', () => {
       const nonce = await contract.nonces(owner.address);
       const deadline = await time.latest();
 
-      // advance time by one hour and mine a new block
+      // Advance time by one hour and mine a new block
       await time.increase(3600);
 
-      // set the timestamp of the next block but don't mine a new block
-      const blockTimestamp = await time.latest() + 1;
+      // Set the timestamp of the next block but don't mine a new block
+      // New block timestamp needs larger than current, so we need to add 1
+      const blockTimestamp = (await time.latest()) + 1;
       await time.setNextBlockTimestamp(blockTimestamp);
 
       const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
