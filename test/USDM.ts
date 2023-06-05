@@ -140,6 +140,21 @@ describe('USDM', () => {
       await expect(contract.transfer(to, amount)).to.emit(contract, 'Transfer').withArgs(owner.address, to, amount);
     });
 
+    it('reverts when transfer from the zero address', async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
+      const signerZero = await ethers.getImpersonatedSigner(AddressZero);
+
+      // Fund the zero address to pay for the transaction
+      await owner.sendTransaction({
+        to: signerZero.address,
+        value: parseUnits('1') // Send 1 ETH
+      });
+
+      await expect(contract.connect(signerZero).transfer(signerZero.address, 1))
+        .to.be.revertedWithCustomError(contract, 'ERC20InvalidSender')
+        .withArgs(AddressZero);
+    });
+
     it('reverts when transfer to the zero address', async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
 
@@ -874,6 +889,21 @@ describe('USDM', () => {
   });
 
   describe('Approve', () => {
+    it('reverts when owner is the zero address', async () => {
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
+      const signerZero = await ethers.getImpersonatedSigner(AddressZero);
+
+      // Fund the zero address to pay for the transaction
+      await owner.sendTransaction({
+        to: signerZero.address,
+        value: parseUnits('1') // Send 1 ETH
+      });
+
+      await expect(contract.connect(signerZero).approve(AddressZero, 1))
+        .to.revertedWithCustomError(contract, 'ERC20InvalidApprover')
+        .withArgs(AddressZero);
+    });
+
     it('reverts when spender is the zero address', async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
 
