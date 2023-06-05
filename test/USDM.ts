@@ -1250,14 +1250,16 @@ describe('USDM', () => {
       // advance time by one hour and mine a new block
       await time.increase(3600);
 
-      const blockTimestamp = await time.latest();
+      // set the timestamp of the next block but don't mine a new block
+      const blockTimestamp = await time.latest() + 1;
+      await time.setNextBlockTimestamp(blockTimestamp);
 
       const { domain, types, message } = await buildData(contract, owner, spender, value, nonce, deadline);
       const { v, r, s } = await signTypedData(owner, domain, types, message);
 
       await expect(contract.permit(owner.address, spender.address, value, deadline, v, r, s))
         .to.be.revertedWithCustomError(contract, 'ERC2612ExpiredDeadline')
-        .withArgs(deadline, blockTimestamp + 1); // for some reason when transaction is mined the timestamp is one second ahead
+        .withArgs(deadline, blockTimestamp);
     });
   });
 });
