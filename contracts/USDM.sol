@@ -398,7 +398,7 @@ contract USDM is
      * @param _rewardMultiplier The new reward multiplier.
      */
     function _setRewardMultiplier(uint256 _rewardMultiplier) private {
-        require(_rewardMultiplier >= 1 ether, "Invalid reward multiplier");
+        require(_rewardMultiplier >= _BASE, "Invalid reward multiplier");
         rewardMultiplier = _rewardMultiplier;
 
         emit RewardMultiplier(rewardMultiplier);
