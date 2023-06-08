@@ -536,7 +536,9 @@ describe('USDM', () => {
       const rewardMultiplier = await contract.rewardMultiplier();
       const expected = rewardMultiplier.add(rewardMultiplierIncrement);
 
-      await expect(contract.addRewardMultiplier(rewardMultiplierIncrement)).to.emit(contract, 'RewardMultiplier').withArgs(expected);
+      await expect(contract.addRewardMultiplier(rewardMultiplierIncrement))
+        .to.emit(contract, 'RewardMultiplier')
+        .withArgs(expected);
 
       expect(await contract.rewardMultiplier()).to.equal(expected);
     });
