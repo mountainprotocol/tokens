@@ -43,7 +43,7 @@
     "solhint": "^3.4.1"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.8.3",
+    "@openzeppelin/contracts": "^4.9.1",
     "@openzeppelin/contracts-upgradeable": "^4.8.3"
   }
 }
