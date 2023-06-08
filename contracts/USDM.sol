@@ -416,12 +416,12 @@ contract USDM is
     /**
      * @notice Adds the given amount to the current reward multiplier.
      * @dev This function can only be called by an account with ORACLE_ROLE.
-     * @param _rewardMultiplier The new reward multiplier.
+     * @param _rewardMultiplierIncrement The amount to add to the current reward multiplier.
      */
-    function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
-        require(_rewardMultiplier > 0, "Invalid reward multiplier");
+    function addRewardMultiplier(uint256 _rewardMultiplierIncrement) external onlyRole(ORACLE_ROLE) {
+        require(_rewardMultiplierIncrement > 0, "Invalid reward multiplier");
 
-        _setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
+        _setRewardMultiplier(rewardMultiplier + _rewardMultiplierIncrement);
     }
 
     /**

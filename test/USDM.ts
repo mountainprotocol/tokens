@@ -532,11 +532,11 @@ describe('USDM', () => {
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const interest = parseUnits('0.0001');
+      const rewardMultiplierIncrement = parseUnits('0.0001');
       const rewardMultiplier = await contract.rewardMultiplier();
-      const expected = rewardMultiplier.add(interest);
+      const expected = rewardMultiplier.add(rewardMultiplierIncrement);
 
-      await expect(contract.addRewardMultiplier(interest)).to.emit(contract, 'RewardMultiplier').withArgs(expected);
+      await expect(contract.addRewardMultiplier(rewardMultiplierIncrement)).to.emit(contract, 'RewardMultiplier').withArgs(expected);
 
       expect(await contract.rewardMultiplier()).to.equal(expected);
     });
@@ -582,7 +582,7 @@ describe('USDM', () => {
 
     it('mints by tokens amount not by shares', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
-      const rewardMultiplier = parseUnits('0.0004'); // 4bps
+      const rewardMultiplierIncrement = parseUnits('0.0004'); // 4bps
 
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.grantRole(roles.MINTER, owner.address);
@@ -590,9 +590,9 @@ describe('USDM', () => {
       const amount = parseUnits('1000'); // 1k USDM
 
       await contract.mint(acc1.address, amount); // Mint 1k
-      await contract.addRewardMultiplier(rewardMultiplier);
+      await contract.addRewardMultiplier(rewardMultiplierIncrement);
 
-      const expected = amount.mul(rewardMultiplier).div(parseUnits('1')).add(amount);
+      const expected = amount.mul(rewardMultiplierIncrement).div(parseUnits('1')).add(amount);
 
       expectEqualWithError(await contract.balanceOf(acc1.address), expected);
     });
@@ -605,13 +605,13 @@ describe('USDM', () => {
 
       // Absurd worst case scenario is used to test the decimal accuracy of the contract
       // Mint 1 USDM and set 4bps as reward multiplier everyday for 5 years
-      const dailyInterest = parseUnits('0.001'); // 10bps
+      const rewardMultiplierIncrement = parseUnits('0.001'); // 10bps
       const amount = parseUnits('1'); // 1 USDM
       const DAYS_IN_FIVE_YEARS = 365 * 5; // 5 years
 
       for (let i = 0; i < DAYS_IN_FIVE_YEARS; i++) {
         await contract.mint(acc1.address, amount); // Mint 1 USDM
-        await contract.addRewardMultiplier(dailyInterest);
+        await contract.addRewardMultiplier(rewardMultiplierIncrement);
       }
 
       // Expected is calculated as follows:
@@ -620,7 +620,7 @@ describe('USDM', () => {
 
       for (let i = 0; i < DAYS_IN_FIVE_YEARS; i++) {
         const prevRewardMultiplier = rewardMultiplier;
-        const newRewardMultiplier = rewardMultiplier.add(dailyInterest);
+        const newRewardMultiplier = rewardMultiplier.add(rewardMultiplierIncrement);
 
         expected = expected.add(amount).mul(newRewardMultiplier).div(prevRewardMultiplier);
         rewardMultiplier = newRewardMultiplier;
@@ -743,7 +743,7 @@ describe('USDM', () => {
 
       const amount = parseUnits('1000');
 
-      await contract.addRewardMultiplier(parseUnits('0.0001'));
+      await contract.addRewardMultiplier(parseUnits('0.0001')); // 1bps
 
       await expect(contract.mint(owner.address, amount))
         .to.emit(contract, 'Transfer')
@@ -839,7 +839,7 @@ describe('USDM', () => {
 
       const amount = parseUnits('1000');
 
-      await contract.addRewardMultiplier(parseUnits('0.0001'));
+      await contract.addRewardMultiplier(parseUnits('0.0001')); // 1bps
 
       await expect(contract.burn(owner.address, amount))
         .to.emit(contract, 'Transfer')

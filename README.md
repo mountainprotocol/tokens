@@ -106,8 +106,8 @@ npx hardhat help
 - `isBlocklisted(address account)`: Checks if account is blocklisted.
 - `pause()`: Pauses the contract, halting token transfers.
 - `unpause()`: Unpauses the contract, allowing token transfers.
-- `setRewardMultiplier(uint256 rewardMultiplier_)`: Sets the reward multiplier.
-- `addRewardMultiplier(uint256 rewardMultiplier_)`: Adds the provided interest rate to the current reward multiplier.
+- `setRewardMultiplier(uint256 _rewardMultiplier)`: Sets the reward multiplier.
+- `addRewardMultiplier(uint256 _rewardMultiplierIncrement)`: Adds the given amount to the current reward multiplier.
 - `approve(address spender, uint256 amount)`: Approves an allowance for a spender.
 - `allowance(address owner, address spender)`: Returns the allowance for a spender.
 - `transferFrom(address from, address to, uint256 amount)`: Moves tokens from an address to another one using the allowance mechanism.
