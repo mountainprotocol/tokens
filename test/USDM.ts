@@ -237,38 +237,38 @@ describe('USDM', () => {
       );
     });
 
-    it('does not blocklist without blocklist role', async () => {
+    it('does not block without blocklist role', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.blocklistAccounts([owner.address])).to.be.revertedWith(
+      await expect(contract.blockAccounts([owner.address])).to.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`,
       );
     });
 
-    it('blocklists with blocklist role', async () => {
+    it('blocks with blocklist role', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.blocklistAccounts([owner.address])).to.not.be.revertedWith(
+      await expect(contract.blockAccounts([owner.address])).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`,
       );
     });
 
-    it('does not unblocklist without blocklist role', async () => {
+    it('does not unblock without blocklist role', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.unblocklistAccounts([owner.address])).to.be.revertedWith(
+      await expect(contract.unblockAccounts([owner.address])).to.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`,
       );
     });
 
-    it('unblocklists with blocklist role', async () => {
+    it('unblocks with blocklist role', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.unblocklistAccounts([owner.address])).to.not.be.revertedWith(
+      await expect(contract.unblockAccounts([owner.address])).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`,
       );
     });
@@ -334,102 +334,102 @@ describe('USDM', () => {
   });
 
   describe('Blocklist', () => {
-    it('blocklists an account', async () => {
+    it('blocks an account', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address]);
+      await contract.blockAccounts([acc1.address]);
 
-      expect(await contract.isBlocklisted(acc1.address)).to.equal(true);
+      expect(await contract.isBlocked(acc1.address)).to.equal(true);
     });
 
-    it('blocklists multiples accounts', async () => {
+    it('blocks multiples accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address, acc2.address]);
+      await contract.blockAccounts([acc1.address, acc2.address]);
 
-      const result = await Promise.all([contract.isBlocklisted(acc1.address), contract.isBlocklisted(acc2.address)]);
+      const result = await Promise.all([contract.isBlocked(acc1.address), contract.isBlocked(acc2.address)]);
 
       expect(result.every(Boolean)).to.equal(true);
     });
 
-    it('unblocklists an account', async () => {
+    it('unblocks an account', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address]);
-      await contract.unblocklistAccounts([acc1.address]);
+      await contract.blockAccounts([acc1.address]);
+      await contract.unblockAccounts([acc1.address]);
 
-      expect(await contract.isBlocklisted(acc1.address)).to.equal(false);
+      expect(await contract.isBlocked(acc1.address)).to.equal(false);
     });
 
-    it('unblocklists multiples accounts', async () => {
+    it('unblocks multiples accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address, acc2.address]);
-      await contract.unblocklistAccounts([acc1.address, acc2.address]);
+      await contract.blockAccounts([acc1.address, acc2.address]);
+      await contract.unblockAccounts([acc1.address, acc2.address]);
 
-      const result = await Promise.all([contract.isBlocklisted(acc1.address), contract.isBlocklisted(acc2.address)]);
+      const result = await Promise.all([contract.isBlocked(acc1.address), contract.isBlocked(acc2.address)]);
 
       expect(result.every(value => value === false)).to.equal(true);
     });
 
-    it('does not allow transfers from blocklisted accounts', async () => {
+    it('does not allow transfers from blocked accounts', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([owner.address]);
+      await contract.blockAccounts([owner.address]);
 
-      await expect(contract.transfer(acc1.address, 1)).to.be.revertedWith('Address is blocklisted');
+      await expect(contract.transfer(acc1.address, 1)).to.be.revertedWith('Address is blocked');
     });
 
-    it('allows transfers to blocklisted accounts', async () => {
+    it('allows transfers to blocked accounts', async () => {
       // We only block sender not receiver, so we don't tax every user
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address]);
+      await contract.blockAccounts([acc1.address]);
 
-      await expect(contract.transfer(acc1.address, 1)).to.not.be.revertedWith('Address is blocklisted');
+      await expect(contract.transfer(acc1.address, 1)).to.not.be.revertedWith('Address is blocked');
     });
 
-    it('does not add an account already blocklisted', async () => {
+    it('does not add an account already blocked', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address]);
+      await contract.blockAccounts([acc1.address]);
 
-      await expect(contract.blocklistAccounts([acc1.address])).to.be.revertedWith('Address already blocklisted');
+      await expect(contract.blockAccounts([acc1.address])).to.be.revertedWith('Address already blocked');
     });
 
-    it('does not unblocklist an account not blocklisted', async () => {
+    it('does not unblock an account not blocked', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.unblocklistAccounts([owner.address])).to.be.revertedWith('Address is not blocklisted');
+      await expect(contract.unblockAccounts([owner.address])).to.be.revertedWith('Address is not blocked');
     });
 
-    it('reverts when blocklisting repeated accounts', async () => {
+    it('reverts when blocking repeated accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.blocklistAccounts([acc1.address, acc2.address, acc2.address])).to.be.revertedWith(
-        'Address already blocklisted',
+      await expect(contract.blockAccounts([acc1.address, acc2.address, acc2.address])).to.be.revertedWith(
+        'Address already blocked',
       );
     });
 
-    it('reverts when unblocklisting repeated accounts', async () => {
+    it('reverts when unblocking repeated accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address, acc2.address]);
+      await contract.blockAccounts([acc1.address, acc2.address]);
 
-      await expect(contract.unblocklistAccounts([acc1.address, acc2.address, acc2.address])).to.be.revertedWith(
-        'Address is not blocklisted',
+      await expect(contract.unblockAccounts([acc1.address, acc2.address, acc2.address])).to.be.revertedWith(
+        'Address is not blocked',
       );
     });
   });

@@ -45,8 +45,8 @@ contract USDM is
     bytes32 public constant UPGRADE_ROLE = keccak256("UPGRADE_ROLE");
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
-    event AccountBlocklisted(address indexed addr);
-    event AccountUnblocklisted(address indexed addr);
+    event AccountBlocked(address indexed addr);
+    event AccountUnblocked(address indexed addr);
     event RewardMultiplier(uint256 indexed value);
 
     /**
@@ -256,7 +256,7 @@ contract USDM is
     function _beforeTokenTransfer(address from, address /* to */, uint256 /* amount */) private view {
         // Each blocklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
-        require(!isBlocklisted(from), "Address is blocklisted");
+        require(!isBlocked(from), "Address is blocked");
         // Useful for scenarios such as preventing trades until the end of an evaluation
         // period, or having an emergency switch for freezing all token transfers in the
         // event of a large bug.
@@ -325,33 +325,33 @@ contract USDM is
     }
 
     /**
-     * @dev Internal function that blocklists the specified address.
-     * @param account The address to blocklist.
+     * @dev Internal function that blocks the specified address.
+     * @param account The address to block.
      */
-    function _blocklistAccount(address account) private {
-        require(!_blocklist[account], "Address already blocklisted");
+    function _blockAccount(address account) private {
+        require(!_blocklist[account], "Address already blocked");
         _blocklist[account] = true;
-        emit AccountBlocklisted(account);
+        emit AccountBlocked(account);
     }
 
     /**
      * @dev Internal function that removes the specified address from the blocklist.
      * @param account The address to remove from the blocklist.
      */
-    function _unblocklistAccount(address account) private {
-        require(_blocklist[account], "Address is not blocklisted");
+    function _unblockAccount(address account) private {
+        require(_blocklist[account], "Address is not blocked");
         _blocklist[account] = false;
-        emit AccountUnblocklisted(account);
+        emit AccountUnblocked(account);
     }
 
     /**
-     * @notice Blocklists multiple accounts at once.
+     * @notice Blocks multiple accounts at once.
      * @dev This function can only be called by an account with BLOCKLIST_ROLE.
-     * @param addresses An array of addresses to be blocklisted.
+     * @param addresses An array of addresses to be blocked.
      */
-    function blocklistAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
+    function blockAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-            _blocklistAccount(addresses[i]);
+            _blockAccount(addresses[i]);
         }
     }
 
@@ -360,18 +360,18 @@ contract USDM is
      * @dev This function can only be called by an account with BLOCKLIST_ROLE.
      * @param addresses An array of addresses to be removed from the blocklist.
      */
-    function unblocklistAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
+    function unblockAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-            _unblocklistAccount(addresses[i]);
+            _unblockAccount(addresses[i]);
         }
     }
 
     /**
-     * @notice Checks if the specified address is blocklisted.
+     * @notice Checks if the specified address is blocked.
      * @param account The address to check.
-     * @return A boolean value indicating whether the address is blocklisted.
+     * @return A boolean value indicating whether the address is blocked.
      */
-    function isBlocklisted(address account) public view returns (bool) {
+    function isBlocked(address account) public view returns (bool) {
         return _blocklist[account];
     }
 
