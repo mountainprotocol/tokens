@@ -93,7 +93,7 @@ npx hardhat help
 - `symbol()`: Returns the symbol of the token.
 - `decimals()`: Returns the number of decimals the token uses.
 - `convertToShares(uint256 amount)`: Converts an amount of tokens to shares.
-- `convertToAmount(uint256 shares)`: Converts an amount of shares to tokens.
+- `convertToToken(uint256 shares)`: Converts an amount of shares to tokens.
 - `totalShares()`: Returns the total amount of shares.
 - `totalSupply()`: Returns the total supply.
 - `balanceOf(address account)`: Returns the balance of account.
