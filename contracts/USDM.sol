@@ -20,9 +20,13 @@ contract USDM is
 {
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
+    // Token name
     string private _name;
+    // Token Symbol
     string private _symbol;
+    // Total token shares
     uint256 private _totalShares;
+    // Base value for rewardMultiplier
     uint256 private constant _BASE = 1e18;
     /**
      * @dev rewardMultiplier represents a coefficient used in reward calculation logic.
@@ -30,14 +34,20 @@ contract USDM is
      */
     uint256 public rewardMultiplier;
 
+    // Mapping of shares per address
     mapping(address => uint256) private _shares;
+    // Mapping of block status per address
     mapping(address => bool) private _blocklist;
+    // Mapping of allowances per owner and spender
     mapping(address => mapping(address => uint256)) private _allowances;
+    // Mapping of nonces per address
     mapping(address => CountersUpgradeable.Counter) private _nonces;
 
+    // Permit typehash constant
     bytes32 private constant _PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
+    // Access control roles
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant BLOCKLIST_ROLE = keccak256("BLOCKLIST_ROLE");
@@ -45,6 +55,7 @@ contract USDM is
     bytes32 public constant UPGRADE_ROLE = keccak256("UPGRADE_ROLE");
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
+    // Events
     event AccountBlocklisted(address indexed addr);
     event AccountUnblocklisted(address indexed addr);
     event RewardMultiplier(uint256 indexed value);
