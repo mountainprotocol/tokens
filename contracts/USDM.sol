@@ -68,7 +68,7 @@ contract USDM is
     error USDMInsufficientBurnBalance(address sender, uint256 balance, uint256 needed);
     error USDMInvalidRewardMultiplier(uint256 rewardMultiplier);
     error USDMBlockedSender(address sender);
-    error USDMInvalidBlocklistAccount(address account);
+    error USDMInvalidBlockedAccount(address account);
     error USDMPausedTransfers();
 
     /**
@@ -195,6 +195,9 @@ contract USDM is
      * - `account` cannot be the zero address.
      * @param to The address to which tokens will be minted.
      * @param amount The number of tokens to mint.
+     *
+     * Note: This function does not prevent minting to blocked accounts for gas efficiency.
+     * It is the caller's responsibility to ensure that blocked accounts are not provided as `to`.
      */
     function _mint(address to, uint256 amount) private {
         if (to == address(0)) {
@@ -236,6 +239,8 @@ contract USDM is
      * - The contract must not be paused.
      * @param account The address from which tokens will be burned.
      * @param amount The amount of tokens to burn.
+     *
+     * Note: Tokens from a blocked account can not be burned.
      */
     function _burn(address account, uint256 amount) private {
         if (account == address(0)) {
@@ -281,6 +286,8 @@ contract USDM is
      * - when `from` is zero, `amount` tokens will be minted for `to`.
      * - when `to` is zero, `amount` of ``from``'s tokens will be burned.
      * - `from` and `to` are never both zero.
+     *
+     * Note: If either `from` or `to` are blocked, or the contract is paused, it reverts the transaction.
      */
     function _beforeTokenTransfer(address from, address /* to */, uint256 /* amount */) private view {
         // Each blocklist check is an SLOAD, which is gas intensive.
@@ -323,6 +330,10 @@ contract USDM is
      * @param from The address from which tokens will be transferred.
      * @param to The address to which tokens will be transferred.
      * @param amount The number of tokens to transfer.
+     *
+     * Note: This function does not prevent transfers to blocked accounts for gas efficiency.
+     * As such, users should be aware of who they're transacting with.
+     * Sending tokens to a blocked account could result in those tokens becoming inaccessible.
      */
     function _transfer(address from, address to, uint256 amount) private {
         if (from == address(0)) {
@@ -369,10 +380,14 @@ contract USDM is
     /**
      * @dev Internal function that blocklists the specified address.
      * @param account The address to blocklist.
+     *
+     * Note: This function does not perform any checks against the zero address for gas efficiency.
+     * It is the caller's responsibility to ensure that the zero address is not provided as `account`.
+     * Blocking the zero address could have unintended effects on token minting and burning.
      */
     function _blocklistAccount(address account) private {
         if (isBlocklisted(account)) {
-            revert USDMInvalidBlocklistAccount(account);
+            revert USDMInvalidBlockedAccount(account);
         }
 
         _blocklist[account] = true;
@@ -386,7 +401,7 @@ contract USDM is
      */
     function _unblocklistAccount(address account) private {
         if (!isBlocklisted(account)) {
-            revert USDMInvalidBlocklistAccount(account);
+            revert USDMInvalidBlockedAccount(account);
         }
 
         _blocklist[account] = false;
@@ -490,6 +505,9 @@ contract USDM is
      *
      * - `owner` cannot be the zero address.
      * - `spender` cannot be the zero address.
+     *
+     * Note: This function does not prevent blocked accounts to approve allowance for gas efficiency.
+     * It is the caller's responsibility to ensure that blocked accounts are not provided.
      */
     function _approve(address owner, address spender, uint256 amount) private {
         if (owner == address(0)) {
@@ -508,7 +526,7 @@ contract USDM is
      * @notice Approves an allowance for a spender.
      * @dev See {IERC20-approve}.
      *
-     * NOTE: If `amount` is the maximum `uint256`, the allowance is not updated on
+     * Note: If `amount` is the maximum `uint256`, the allowance is not updated on
      * `transferFrom`. This is semantically equivalent to an infinite approval.
      *
      * Requirements:
@@ -565,15 +583,14 @@ contract USDM is
      * required by the EIP. This allows applications to reconstruct the allowance
      * for all accounts just by listening to said events.
      *
-     * NOTE: Does not update the allowance if the current allowance
+     * Note: Does not update the allowance if the current allowance
      * is the maximum `uint256`.
      *
      * Requirements:
      *
      * - `from` and `to` cannot be the zero address.
      * - `from` must have a balance of at least `amount`.
-     * - the caller must have allowance for ``from``'s tokens of at least
-     * `amount`.
+     * - the caller must have allowance for ``from``'s tokens of at least `amount`.
      * @param from The address from which tokens will be transferred.
      * @param to The address to which tokens will be transferred.
      * @param amount The number of tokens to transfer.

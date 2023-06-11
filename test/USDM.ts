@@ -393,7 +393,7 @@ describe('USDM', () => {
       expect(result.every(value => value === false)).to.equal(true);
     });
 
-    it('does not allow transfers from blocklisted accounts', async () => {
+    it('reverts when transfering from a blocked account', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
@@ -414,45 +414,45 @@ describe('USDM', () => {
       await expect(contract.transfer(acc1.address, 1)).to.not.be.revertedWithCustomError(contract, 'USDMBlockedSender');
     });
 
-    it('does not add an account already blocklisted', async () => {
+    it('reverts when blocking an account already blocked', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
       await contract.blocklistAccounts([acc1.address]);
 
       await expect(contract.blocklistAccounts([acc1.address]))
-        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlocklistAccount')
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(acc1.address);
     });
 
-    it('does not unblocklist an account not blocklisted', async () => {
+    it('reverts when unblocking an account not blocked', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
       await expect(contract.unblocklistAccounts([owner.address]))
-        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlocklistAccount')
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(owner.address);
     });
 
-    it('reverts when blocklisting repeated accounts', async () => {
+    it('reverts when blocking a repeated accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
       await expect(contract.blocklistAccounts([acc1.address, acc2.address, acc2.address]))
-        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlocklistAccount')
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(acc2.address);
     });
 
-    it('reverts when unblocklisting repeated accounts', async () => {
+    it('reverts when unblocking a repeated accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
       await contract.blocklistAccounts([acc1.address, acc2.address]);
 
       await expect(contract.unblocklistAccounts([acc1.address, acc2.address, acc2.address]))
-        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlocklistAccount')
+        .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(acc2.address);
     });
   });
