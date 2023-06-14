@@ -120,7 +120,7 @@ contract USDM is
      * @param shares The amount of shares to convert.
      * @return The equivalent amount of tokens.
      */
-    function convertToToken(uint256 shares) public view returns (uint256) {
+    function convertToTokens(uint256 shares) public view returns (uint256) {
         return (shares * rewardMultiplier) / _BASE;
     }
 
@@ -137,7 +137,7 @@ contract USDM is
      * @return The total supply of tokens.
      */
     function totalSupply() external view returns (uint256) {
-        return convertToToken(_totalShares);
+        return convertToTokens(_totalShares);
     }
 
     /**
@@ -157,7 +157,7 @@ contract USDM is
      * @return The balance of the specified address.
      */
     function balanceOf(address account) external view returns (uint256) {
-        return convertToToken(sharesOf(account));
+        return convertToTokens(sharesOf(account));
     }
 
     /**

@@ -691,7 +691,7 @@ describe('USDM', () => {
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.setRewardMultiplier(rewardMultiplier);
 
-      expect(await contract.convertToToken(shares)).to.equal(
+      expect(await contract.convertToTokens(shares)).to.equal(
         // We use fixed-point arithmetic to avoid precision issues
         shares.mul(rewardMultiplier).div(parseUnits('1')),
       );
