@@ -430,7 +430,7 @@ describe('USDM', () => {
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.blockAccounts([owner.address]))
+      await expect(contract.unblockAccounts([owner.address]))
         .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(owner.address);
     });
