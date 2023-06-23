@@ -254,38 +254,38 @@ describe('USDM', () => {
       );
     });
 
-    it('does not blocklist without blocklist role', async () => {
+    it('does not block without blocklist role', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.blocklistAccounts([owner.address])).to.be.revertedWith(
+      await expect(contract.blockAccounts([owner.address])).to.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`,
       );
     });
 
-    it('blocklists with blocklist role', async () => {
+    it('blocks with blocklist role', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.blocklistAccounts([owner.address])).to.not.be.revertedWith(
+      await expect(contract.blockAccounts([owner.address])).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`,
       );
     });
 
-    it('does not unblocklist without blocklist role', async () => {
+    it('does not unblock without blocklist role', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.unblocklistAccounts([owner.address])).to.be.revertedWith(
+      await expect(contract.unblockAccounts([owner.address])).to.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`,
       );
     });
 
-    it('unblocklists with blocklist role', async () => {
+    it('unblocks with blocklist role', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.unblocklistAccounts([owner.address])).to.not.be.revertedWith(
+      await expect(contract.unblockAccounts([owner.address])).to.not.be.revertedWith(
         `AccessControl: account ${owner.address.toLowerCase()} is missing role ${roles.BLOCKLIST}`,
       );
     });
@@ -351,44 +351,44 @@ describe('USDM', () => {
   });
 
   describe('Blocklist', () => {
-    it('blocklists an account', async () => {
+    it('blocks an account', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address]);
+      await contract.blockAccounts([acc1.address]);
 
-      expect(await contract.isBlocklisted(acc1.address)).to.equal(true);
+      expect(await contract.isBlocked(acc1.address)).to.equal(true);
     });
 
-    it('blocklists multiples accounts', async () => {
+    it('blocks multiples accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address, acc2.address]);
+      await contract.blockAccounts([acc1.address, acc2.address]);
 
-      const result = await Promise.all([contract.isBlocklisted(acc1.address), contract.isBlocklisted(acc2.address)]);
+      const result = await Promise.all([contract.isBlocked(acc1.address), contract.isBlocked(acc2.address)]);
 
       expect(result.every(Boolean)).to.equal(true);
     });
 
-    it('unblocklists an account', async () => {
+    it('unblocks an account', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address]);
-      await contract.unblocklistAccounts([acc1.address]);
+      await contract.blockAccounts([acc1.address]);
+      await contract.unblockAccounts([acc1.address]);
 
-      expect(await contract.isBlocklisted(acc1.address)).to.equal(false);
+      expect(await contract.isBlocked(acc1.address)).to.equal(false);
     });
 
-    it('unblocklists multiples accounts', async () => {
+    it('unblocks multiples accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address, acc2.address]);
-      await contract.unblocklistAccounts([acc1.address, acc2.address]);
+      await contract.blockAccounts([acc1.address, acc2.address]);
+      await contract.unblockAccounts([acc1.address, acc2.address]);
 
-      const result = await Promise.all([contract.isBlocklisted(acc1.address), contract.isBlocklisted(acc2.address)]);
+      const result = await Promise.all([contract.isBlocked(acc1.address), contract.isBlocked(acc2.address)]);
 
       expect(result.every(value => value === false)).to.equal(true);
     });
@@ -397,19 +397,19 @@ describe('USDM', () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([owner.address]);
+      await contract.blockAccounts([owner.address]);
 
       await expect(contract.transfer(acc1.address, 1))
         .to.be.revertedWithCustomError(contract, 'USDMBlockedSender')
         .withArgs(owner.address);
     });
 
-    it('allows transfers to blocklisted accounts', async () => {
+    it('allows transfers to blocked accounts', async () => {
       // We only block sender not receiver, so we don't tax every user
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address]);
+      await contract.blockAccounts([acc1.address]);
 
       await expect(contract.transfer(acc1.address, 1)).to.not.be.revertedWithCustomError(contract, 'USDMBlockedSender');
     });
@@ -418,9 +418,9 @@ describe('USDM', () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address]);
+      await contract.blockAccounts([acc1.address]);
 
-      await expect(contract.blocklistAccounts([acc1.address]))
+      await expect(contract.blockAccounts([acc1.address]))
         .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(acc1.address);
     });
@@ -430,7 +430,7 @@ describe('USDM', () => {
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.unblocklistAccounts([owner.address]))
+      await expect(contract.blockAccounts([owner.address]))
         .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(owner.address);
     });
@@ -440,18 +440,18 @@ describe('USDM', () => {
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
 
-      await expect(contract.blocklistAccounts([acc1.address, acc2.address, acc2.address]))
+      await expect(contract.blockAccounts([acc1.address, acc2.address, acc2.address]))
         .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(acc2.address);
     });
 
-    it('reverts when unblocking a repeated accounts', async () => {
+    it('reverts when unblocking repeated accounts', async () => {
       const { contract, owner, acc1, acc2 } = await loadFixture(deployUSDMFixture);
 
       await contract.grantRole(roles.BLOCKLIST, owner.address);
-      await contract.blocklistAccounts([acc1.address, acc2.address]);
+      await contract.blockAccounts([acc1.address, acc2.address]);
 
-      await expect(contract.unblocklistAccounts([acc1.address, acc2.address, acc2.address]))
+      await expect(contract.unblockAccounts([acc1.address, acc2.address, acc2.address]))
         .to.be.revertedWithCustomError(contract, 'USDMInvalidBlockedAccount')
         .withArgs(acc2.address);
     });
@@ -567,11 +567,13 @@ describe('USDM', () => {
 
       await contract.grantRole(roles.ORACLE, owner.address);
 
-      const interest = parseUnits('0.0001');
+      const rewardMultiplierIncrement = parseUnits('0.0001');
       const rewardMultiplier = await contract.rewardMultiplier();
-      const expected = rewardMultiplier.add(interest);
+      const expected = rewardMultiplier.add(rewardMultiplierIncrement);
 
-      await expect(contract.addRewardMultiplier(interest)).to.emit(contract, 'RewardMultiplier').withArgs(expected);
+      await expect(contract.addRewardMultiplier(rewardMultiplierIncrement))
+        .to.emit(contract, 'RewardMultiplier')
+        .withArgs(expected);
 
       expect(await contract.rewardMultiplier()).to.equal(expected);
     });
@@ -619,7 +621,7 @@ describe('USDM', () => {
 
     it('mints by tokens amount not by shares', async () => {
       const { contract, owner, acc1 } = await loadFixture(deployUSDMFixture);
-      const rewardMultiplier = parseUnits('0.0004'); // 4bps
+      const rewardMultiplierIncrement = parseUnits('0.0004'); // 4bps
 
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.grantRole(roles.MINTER, owner.address);
@@ -627,9 +629,9 @@ describe('USDM', () => {
       const amount = parseUnits('1000'); // 1k USDM
 
       await contract.mint(acc1.address, amount); // Mint 1k
-      await contract.addRewardMultiplier(rewardMultiplier);
+      await contract.addRewardMultiplier(rewardMultiplierIncrement);
 
-      const expected = amount.mul(rewardMultiplier).div(parseUnits('1')).add(amount);
+      const expected = amount.mul(rewardMultiplierIncrement).div(parseUnits('1')).add(amount);
 
       expectEqualWithError(await contract.balanceOf(acc1.address), expected);
     });
@@ -642,13 +644,13 @@ describe('USDM', () => {
 
       // Absurd worst case scenario is used to test the decimal accuracy of the contract
       // Mint 1 USDM and set 4bps as reward multiplier everyday for 5 years
-      const dailyInterest = parseUnits('0.001'); // 10bps
+      const rewardMultiplierIncrement = parseUnits('0.001'); // 10bps
       const amount = parseUnits('1'); // 1 USDM
       const DAYS_IN_FIVE_YEARS = 365 * 5; // 5 years
 
       for (let i = 0; i < DAYS_IN_FIVE_YEARS; i++) {
         await contract.mint(acc1.address, amount); // Mint 1 USDM
-        await contract.addRewardMultiplier(dailyInterest);
+        await contract.addRewardMultiplier(rewardMultiplierIncrement);
       }
 
       // Expected is calculated as follows:
@@ -657,7 +659,7 @@ describe('USDM', () => {
 
       for (let i = 0; i < DAYS_IN_FIVE_YEARS; i++) {
         const prevRewardMultiplier = rewardMultiplier;
-        const newRewardMultiplier = rewardMultiplier.add(dailyInterest);
+        const newRewardMultiplier = rewardMultiplier.add(rewardMultiplierIncrement);
 
         expected = expected.add(amount).mul(newRewardMultiplier).div(prevRewardMultiplier);
         rewardMultiplier = newRewardMultiplier;
@@ -726,7 +728,7 @@ describe('USDM', () => {
       await contract.grantRole(roles.ORACLE, owner.address);
       await contract.setRewardMultiplier(rewardMultiplier);
 
-      expect(await contract.convertToAmount(shares)).to.equal(
+      expect(await contract.convertToTokens(shares)).to.equal(
         // We use fixed-point arithmetic to avoid precision issues
         shares.mul(rewardMultiplier).div(parseUnits('1')),
       );
@@ -780,7 +782,7 @@ describe('USDM', () => {
 
       const amount = parseUnits('1000');
 
-      await contract.addRewardMultiplier(parseUnits('0.0001'));
+      await contract.addRewardMultiplier(parseUnits('0.0001')); // 1bps
 
       await expect(contract.mint(owner.address, amount))
         .to.emit(contract, 'Transfer')
@@ -880,7 +882,7 @@ describe('USDM', () => {
 
       const amount = parseUnits('1000');
 
-      await contract.addRewardMultiplier(parseUnits('0.0001'));
+      await contract.addRewardMultiplier(parseUnits('0.0001')); // 1bps
 
       await expect(contract.burn(owner.address, amount))
         .to.emit(contract, 'Transfer')
