@@ -76,7 +76,7 @@ contract USDM is
         __UUPSUpgradeable_init();
         __EIP712_init(name_, "1");
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _mint(_msgSender(), initialSupply);
     }
 
