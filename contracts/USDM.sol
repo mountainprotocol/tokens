@@ -3,15 +3,15 @@ pragma solidity 0.8.18;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
-import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {ECDSAUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 
 contract USDM is
-    IERC20Upgradeable,
+    IERC20MetadataUpgradeable,
     AccessControlUpgradeable,
     PausableUpgradeable,
     UUPSUpgradeable,
@@ -20,9 +20,13 @@ contract USDM is
 {
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
+    // Token name
     string private _name;
+    // Token Symbol
     string private _symbol;
+    // Total token shares
     uint256 private _totalShares;
+    // Base value for rewardMultiplier
     uint256 private constant _BASE = 1e18;
     /**
      * @dev rewardMultiplier represents a coefficient used in reward calculation logic.
@@ -30,14 +34,20 @@ contract USDM is
      */
     uint256 public rewardMultiplier;
 
+    // Mapping of shares per address
     mapping(address => uint256) private _shares;
+    // Mapping of block status per address
     mapping(address => bool) private _blocklist;
+    // Mapping of allowances per owner and spender
     mapping(address => mapping(address => uint256)) private _allowances;
+    // Mapping of nonces per address
     mapping(address => CountersUpgradeable.Counter) private _nonces;
 
+    // Permit typehash constant
     bytes32 private constant _PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
+    // Access control roles
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant BLOCKLIST_ROLE = keccak256("BLOCKLIST_ROLE");
@@ -45,8 +55,9 @@ contract USDM is
     bytes32 public constant UPGRADE_ROLE = keccak256("UPGRADE_ROLE");
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
-    event AccountBlocklisted(address indexed addr);
-    event AccountUnblocklisted(address indexed addr);
+    // Events
+    event AccountBlocked(address indexed addr);
+    event AccountUnblocked(address indexed addr);
     event RewardMultiplier(uint256 indexed value);
 
     /**
@@ -65,7 +76,7 @@ contract USDM is
         __UUPSUpgradeable_init();
         __EIP712_init(name_, "1");
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _mint(_msgSender(), initialSupply);
     }
 
@@ -110,6 +121,10 @@ contract USDM is
      * @notice Converts an amount of tokens to shares.
      * @param amount The amount of tokens to convert.
      * @return The equivalent amount of shares.
+     *
+     * Note: All rounding errors should be rounded down in the interest of the protocol's safety.
+     * Token transfers, including mint and burn operations, may require a rounding, leading to potential
+     * transferring at most one GWEI less than expected aggregated over a long period of time.
      */
     function convertToShares(uint256 amount) public view returns (uint256) {
         return (amount * _BASE) / rewardMultiplier;
@@ -120,7 +135,7 @@ contract USDM is
      * @param shares The amount of shares to convert.
      * @return The equivalent amount of tokens.
      */
-    function convertToAmount(uint256 shares) public view returns (uint256) {
+    function convertToTokens(uint256 shares) public view returns (uint256) {
         return (shares * rewardMultiplier) / _BASE;
     }
 
@@ -137,7 +152,7 @@ contract USDM is
      * @return The total supply of tokens.
      */
     function totalSupply() external view returns (uint256) {
-        return convertToAmount(_totalShares);
+        return convertToTokens(_totalShares);
     }
 
     /**
@@ -157,7 +172,7 @@ contract USDM is
      * @return The balance of the specified address.
      */
     function balanceOf(address account) external view returns (uint256) {
-        return convertToAmount(sharesOf(account));
+        return convertToTokens(sharesOf(account));
     }
 
     /**
@@ -256,7 +271,7 @@ contract USDM is
     function _beforeTokenTransfer(address from, address /* to */, uint256 /* amount */) private view {
         // Each blocklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
-        require(!isBlocklisted(from), "Address is blocklisted");
+        require(!isBlocked(from), "Address is blocked");
         // Useful for scenarios such as preventing trades until the end of an evaluation
         // period, or having an emergency switch for freezing all token transfers in the
         // event of a large bug.
@@ -325,33 +340,33 @@ contract USDM is
     }
 
     /**
-     * @dev Private function that blocklists the specified address.
-     * @param account The address to blocklist.
+     * @dev Private function that blocks the specified address.
+     * @param account The address to block.
      */
-    function _blocklistAccount(address account) private {
-        require(!_blocklist[account], "Address already blocklisted");
+    function _blockAccount(address account) private {
+        require(!_blocklist[account], "Address already blocked");
         _blocklist[account] = true;
-        emit AccountBlocklisted(account);
+        emit AccountBlocked(account);
     }
 
     /**
      * @dev Private function that removes the specified address from the blocklist.
      * @param account The address to remove from the blocklist.
      */
-    function _unblocklistAccount(address account) private {
-        require(_blocklist[account], "Address is not blocklisted");
+    function _unblockAccount(address account) private {
+        require(_blocklist[account], "Address is not blocked");
         _blocklist[account] = false;
-        emit AccountUnblocklisted(account);
+        emit AccountUnblocked(account);
     }
 
     /**
-     * @notice Blocklists multiple accounts at once.
+     * @notice Blocks multiple accounts at once.
      * @dev This function can only be called by an account with BLOCKLIST_ROLE.
-     * @param addresses An array of addresses to be blocklisted.
+     * @param addresses An array of addresses to be blocked.
      */
-    function blocklistAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
+    function blockAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-            _blocklistAccount(addresses[i]);
+            _blockAccount(addresses[i]);
         }
     }
 
@@ -360,18 +375,18 @@ contract USDM is
      * @dev This function can only be called by an account with BLOCKLIST_ROLE.
      * @param addresses An array of addresses to be removed from the blocklist.
      */
-    function unblocklistAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
+    function unblockAccounts(address[] calldata addresses) external onlyRole(BLOCKLIST_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-            _unblocklistAccount(addresses[i]);
+            _unblockAccount(addresses[i]);
         }
     }
 
     /**
-     * @notice Checks if the specified address is blocklisted.
+     * @notice Checks if the specified address is blocked.
      * @param account The address to check.
-     * @return A boolean value indicating whether the address is blocklisted.
+     * @return A boolean value indicating whether the address is blocked.
      */
-    function isBlocklisted(address account) public view returns (bool) {
+    function isBlocked(address account) public view returns (bool) {
         return _blocklist[account];
     }
 
@@ -398,7 +413,7 @@ contract USDM is
      * @param _rewardMultiplier The new reward multiplier.
      */
     function _setRewardMultiplier(uint256 _rewardMultiplier) private {
-        require(_rewardMultiplier >= 1 ether, "Invalid reward multiplier");
+        require(_rewardMultiplier >= _BASE, "Invalid reward multiplier");
         rewardMultiplier = _rewardMultiplier;
 
         emit RewardMultiplier(rewardMultiplier);
@@ -416,12 +431,12 @@ contract USDM is
     /**
      * @notice Adds the given amount to the current reward multiplier.
      * @dev This function can only be called by an account with ORACLE_ROLE.
-     * @param _rewardMultiplier The amount to add to the current reward multiplier
+     * @param _rewardMultiplierIncrement The amount to add to the current reward multiplier
      */
-    function addRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(ORACLE_ROLE) {
-        require(_rewardMultiplier > 0, "Invalid reward multiplier");
+    function addRewardMultiplier(uint256 _rewardMultiplierIncrement) external onlyRole(ORACLE_ROLE) {
+        require(_rewardMultiplierIncrement > 0, "Invalid reward multiplier");
 
-        _setRewardMultiplier(rewardMultiplier + _rewardMultiplier);
+        _setRewardMultiplier(rewardMultiplier + _rewardMultiplierIncrement);
     }
 
     /**
@@ -635,5 +650,5 @@ contract USDM is
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[50] private __gap;
+    uint256[42] private __gap;
 }
