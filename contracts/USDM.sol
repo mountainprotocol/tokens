@@ -110,6 +110,10 @@ contract USDM is
      * @notice Converts an amount of tokens to shares.
      * @param amount The amount of tokens to convert.
      * @return The equivalent amount of shares.
+     *
+     * Note: All rounding errors should be rounded down in the interest of the protocol's safety.
+     * Token transfers, including mint and burn operations, may require a rounding, leading to potential
+     * transferring at most one GWEI less than expected aggregated over a long period of time.
      */
     function convertToShares(uint256 amount) public view returns (uint256) {
         return (amount * _BASE) / rewardMultiplier;
