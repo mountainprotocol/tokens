@@ -176,7 +176,7 @@ contract USDM is
     }
 
     /**
-     * @dev Internal function that mints a specified number of tokens to the given address.
+     * @dev Private function that mints a specified number of tokens to the given address.
      * Creates `amount` tokens and assigns them to `account`, increasing
      * the total supply.
      *
@@ -217,7 +217,7 @@ contract USDM is
     }
 
     /**
-     * @dev Burns `amount` tokens from `account`, reducing the total supply.
+     * @dev Private function that burns `amount` tokens from `account`, reducing the total supply.
      *
      * Emits a {Transfer} event with `to` set to the zero address.
      *
@@ -257,7 +257,7 @@ contract USDM is
     }
 
     /**
-     * @dev Hook that is called before any transfer of tokens. This includes
+     * @dev Private function of a hook that is called before any transfer of tokens. This includes
      * minting and burning.
      *
      * Calling conditions:
@@ -279,7 +279,7 @@ contract USDM is
     }
 
     /**
-     * @dev Hook that is called after any transfer of tokens. This includes
+     * @dev Private funciton of a hook that is called after any transfer of tokens. This includes
      * minting and burning.
      *
      * Calling conditions:
@@ -295,7 +295,7 @@ contract USDM is
     }
 
     /**
-     * @dev Internal function that transfers a specified number of tokens from one address to another.
+     * @dev Private function that transfers a specified number of tokens from one address to another.
      * Emits a {Transfer} event.
      *
      * Requirements:
@@ -340,7 +340,7 @@ contract USDM is
     }
 
     /**
-     * @dev Internal function that blocks the specified address.
+     * @dev Private function that blocks the specified address.
      * @param account The address to block.
      */
     function _blockAccount(address account) private {
@@ -350,7 +350,7 @@ contract USDM is
     }
 
     /**
-     * @dev Internal function that removes the specified address from the blocklist.
+     * @dev Private function that removes the specified address from the blocklist.
      * @param account The address to remove from the blocklist.
      */
     function _unblockAccount(address account) private {
@@ -409,7 +409,7 @@ contract USDM is
     }
 
     /**
-     * @dev Internal function to set the reward multiplier.
+     * @dev Private function to set the reward multiplier.
      * @param _rewardMultiplier The new reward multiplier.
      */
     function _setRewardMultiplier(uint256 _rewardMultiplier) private {
@@ -421,7 +421,7 @@ contract USDM is
 
     /**
      * @notice Sets the reward multiplier.
-     * @dev This function can only be called by ADMIN_ROLE.
+     * @dev This function can only be called by DEFAULT_ADMIN_ROLE.
      * @param _rewardMultiplier The new reward multiplier.
      */
     function setRewardMultiplier(uint256 _rewardMultiplier) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -431,7 +431,7 @@ contract USDM is
     /**
      * @notice Adds the given amount to the current reward multiplier.
      * @dev This function can only be called by an account with ORACLE_ROLE.
-     * @param _rewardMultiplierIncrement The new reward multiplier.
+     * @param _rewardMultiplierIncrement The amount to add to the current reward multiplier
      */
     function addRewardMultiplier(uint256 _rewardMultiplierIncrement) external onlyRole(ORACLE_ROLE) {
         require(_rewardMultiplierIncrement > 0, "Invalid reward multiplier");
@@ -440,9 +440,9 @@ contract USDM is
     }
 
     /**
-     * @dev Internal function to set `amount` as the allowance of `spender` over the `owner`s tokens.
+     * @dev Private function to set `amount` as the allowance of `spender` over the `owner`s tokens.
      *
-     * This private function is equivalent to `approve`, and can be used to
+     * This function is equivalent to `approve`, and can be used to
      * e.g. set automatic allowances for certain subsystems, etc.
      *
      * Emits an {Approval} event.
@@ -490,7 +490,7 @@ contract USDM is
     }
 
     /**
-     * @dev Updates `owner` s allowance for `spender` based on spent `amount`.
+     * @dev Private function that updates `owner` s allowance for `spender` based on spent `amount`.
      *
      * Does not update the allowance amount in case of infinite allowance.
      * Revert if not enough allowance is available.
@@ -604,7 +604,7 @@ contract USDM is
     }
 
     /**
-     * @dev Internal function that increments and returns the current nonce for a given owner address.
+     * @dev Private function that increments and returns the current nonce for a given owner address.
      * @param owner The address whose nonce is to be incremented.
      */
     function _useNonce(address owner) private returns (uint256 current) {
