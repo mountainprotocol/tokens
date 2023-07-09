@@ -1,3 +1,19 @@
+Private repo was created using the following guide: https://24ways.org/2013/keeping-parts-of-your-codebase-private-on-github/
+
+To keep a branch private follow these steps:
+
+Create the branch
+1. git checkout -b <branch-name>
+
+Push branch to remote private (we don't push to the public repo)
+2. git push -u private
+
+Once the branch is ready, publish it to the public repo
+3. git push origin
+
+Create pull request
+
+
 # Mountain Protocol USD
 
 This smart contract implements a custom rebasing ERC-20 token with additional features like pausing, block/unblock, access control, and upgradability. The contract aims to reflect the T-Bills APY into the token value through a reward multiplier mechanism. Users receive a proportional number of shares when they deposit tokens, and the number of tokens they can withdraw is calculated based on the current reward multiplier. The addRewardMultiplier function is called once a day to adjust the reward multiplier, ensuring accurate reflection of the yield from 3 months maturity T-Bills.
