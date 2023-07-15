@@ -500,7 +500,7 @@ contract USDM is
      * @param _rewardMultiplierIncrement The amount to add to the current reward multiplier
      */
     function addRewardMultiplier(uint256 _rewardMultiplierIncrement) external onlyRole(ORACLE_ROLE) {
-        if (_rewardMultiplierIncrement <= 0) {
+        if (_rewardMultiplierIncrement == 0) {
             revert USDMInvalidRewardMultiplier(_rewardMultiplierIncrement);
         }
 
