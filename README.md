@@ -2,22 +2,9 @@
 
 This smart contract implements a custom rebasing ERC-20 token with additional features like pausing, block/unblock, access control, and upgradability. The contract aims to reflect the T-Bills APY into the token value through a reward multiplier mechanism. Users receive a proportional number of shares when they deposit tokens, and the number of tokens they can withdraw is calculated based on the current reward multiplier. The addRewardMultiplier function is called once a day to adjust the reward multiplier, ensuring accurate reflection of the yield from 3 months maturity T-Bills.
 
-## Features
-
-- OpenZeppelin Access Control
-- Rebasing token mechanism
-- Minting and burning functionality
-- Block/Unblock accounts
-- Pausing emergency stop mechanism
-- Reward multiplier system
-- EIP-2612 permit support
-- OpenZeppelin UUPS upgrade pattern
-
 ## Dev
 
-### Contributing
-
-This project uses Hardhat. It includes a contract, its tests, and a script that deploys the contract.
+This Project uses Hardhat. It includes a contract, its tests, and a script that deploys the contract.
 
 > Prerequisites: Node v18 LTS
 
@@ -74,8 +61,8 @@ npx hardhat compile
 Deploying and contract verification
 
 ```shell
-npx hardhat run scripts/deploy.ts--network goerli
-npx hardhat verify --network goerli <contact-address>
+npx hardhat run scripts/deploy.ts --network goerli
+npx hardhat verify --network goerli <contract-address>
 ```
 
 Help
@@ -83,6 +70,17 @@ Help
 ```shell
 npx hardhat help
 ```
+
+### Features
+
+- Access Control
+- Rebasing token mechanism
+- Minting and burning functionality
+- Block/Unblock accounts
+- Pausing emergency stop mechanism
+- Reward multiplier system
+- EIP-2612 permit support
+- OpenZeppelin UUPS upgrade pattern
 
 ### Functions
 
@@ -96,14 +94,14 @@ npx hardhat help
 - `convertToTokens(uint256 shares)`: Converts an amount of shares to tokens.
 - `totalShares()`: Returns the total amount of shares.
 - `totalSupply()`: Returns the total supply.
-- `balanceOf(address account)`: Returns the balance of account.
-- `sharesOf(address account)`: Returns the shares of account.
+- `balanceOf(address account)`: Returns the account blanace.
+- `sharesOf(address account)`: Returns the account shares.
 - `mint(address to, uint256 amount)`: Creates new tokens to the specified address.
 - `burn(address from, uint256 amount)`: Destroys tokens from the specified address.
 - `transfer(address to, uint256 amount)`: Transfers tokens between addresses.
 - `blockAccounts(address[] addresses)`: Blocks multiple accounts at once.
 - `unblockAccounts(address[] addresses)`: Unblocks multiple accounts at once.
-- `isBlocked(address account)`: Checks if account is blocked.
+- `isBlocked(address account)`: Checks if an account is blocked.
 - `pause()`: Pauses the contract, halting token transfers.
 - `unpause()`: Unpauses the contract, allowing token transfers.
 - `setRewardMultiplier(uint256 _rewardMultiplier)`: Sets the reward multiplier.
@@ -126,8 +124,8 @@ npx hardhat help
 - `_afterTokenTransfer(address from, address to, uint256 amount)`: Hook that is called after any transfer of tokens.
 - `_transfer(address from, address to, uint256 amount)`: Internal function to transfer tokens between addresses.
 - `_blockAccount(address account)`: Internal function to block account.
-- `_unblockAccount(address account)`: Internal function to unblock account.
-- `_setRewardMultiplier(uint256 _rewardMultiplier)`: Internal function to sets the reward multiplier.
+- `_unblockAccount(address account)`: Internal function to unblock an account.
+- `_setRewardMultiplier(uint256 _rewardMultiplier)`: Internal function to set the reward multiplier.
 - `_spendAllowance(address owner, address spender, uint256 amount)`: Internal function to spend an allowance.
 - `_useNonce(address owner)`: Increments and returns the current nonce for a given address.
 - `_approve(address owner, address spender, uint256 amount)`: Internal function to approve an allowance for a spender.
@@ -150,3 +148,25 @@ npx hardhat help
 - `ORACLE_ROLE`: Grants the ability to update the reward multiplier.
 - `UPGRADE_ROLE`: Grants the ability to upgrade the contract.
 - `PAUSE_ROLE`: Grants the ability to pause/unpause the contract.
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to run the linter and update tests as appropriate.
+
+## Security
+
+The security policy is detailed in [SECURITY.md](https://github.com/mountainprotocol/tokens/blob/main/SECURITY.md), and specifies how you can report security vulnerabilities and which versions will receive security updates. We run a bug bounty program on Immunefi to reward the responsible disclosure of vulnerabilities.
+
+## Audits
+
+Audits can be found at https://github.com/mountainprotocol/audits.
+
+## License
+
+Mountain Protocol Contracts are released under the [MIT License](https://github.com/mountainprotocol/tokens/blob/main/LICENSE).
+
+## Legal
+
+The use of this Project is governed by the terms found at https://docs.mountainprotocol.com/legal/terms-and-conditions.
