@@ -64,7 +64,7 @@ contract USDM is
      * Standard ERC20 Errors
      * @dev See https://eips.ethereum.org/EIPS/eip-6093
      */
-    error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
+    error ERC20InsufficientBalance(address sender, uint256 shares, uint256 sharesNeeded);
     error ERC20InvalidSender(address sender);
     error ERC20InvalidReceiver(address receiver);
     error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
@@ -76,7 +76,7 @@ contract USDM is
     // USDM Errors
     error USDMInvalidMintReceiver(address receiver);
     error USDMInvalidBurnSender(address sender);
-    error USDMInsufficientBurnBalance(address sender, uint256 balance, uint256 needed);
+    error USDMInsufficientBurnBalance(address sender, uint256 shares, uint256 sharesNeeded);
     error USDMInvalidRewardMultiplier(uint256 rewardMultiplier);
     error USDMBlockedSender(address sender);
     error USDMInvalidBlockedAccount(address account);
@@ -500,7 +500,7 @@ contract USDM is
      * @param _rewardMultiplierIncrement The amount to add to the current reward multiplier
      */
     function addRewardMultiplier(uint256 _rewardMultiplierIncrement) external onlyRole(ORACLE_ROLE) {
-        if (_rewardMultiplierIncrement <= 0) {
+        if (_rewardMultiplierIncrement == 0) {
             revert USDMInvalidRewardMultiplier(_rewardMultiplierIncrement);
         }
 
