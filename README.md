@@ -80,7 +80,7 @@ npx hardhat help
 - Pausing emergency stop mechanism
 - Reward multiplier system
 - EIP-2612 permit support
-- OpenZeppelin UUPS upgrade pattern
+- UUPS upgrade pattern
 
 ### Functions
 
