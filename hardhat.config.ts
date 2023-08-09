@@ -11,10 +11,11 @@ const {
   REPORT_GAS,
   ETHERSCAN_API_KEY,
   COIN_MARKETCAP_API_KEY,
-  GOERLI_PRIVATE_KEY,
+  ALCHEMY_MAINNET_API_KEY,
   ALCHEMY_GOERLI_API_KEY,
-  // MAINNET_PRIVATE_KEY,
-  // ALCHEMY_MAINNET_API_KEY,
+  ALCHEMY_SEPOLIA_API_KEY,
+  OZ_PLATFORM_KEY,
+  OZ_PLATFORM_SECRET,
 } = process.env;
 
 const isTestEnv = NODE_ENV === 'test';
@@ -47,19 +48,31 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  platform: {
+    apiKey: OZ_PLATFORM_KEY as string,
+    apiSecret: OZ_PLATFORM_SECRET as string,
+  },
   etherscan: ETHERSCAN_API_KEY ? etherscanConfig : {},
   defaultNetwork: 'goerli',
   networks: {
     goerli: {
       url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_GOERLI_API_KEY}`,
+      chainId: 5,
       // Only add account if the PK is provided
-      ...(GOERLI_PRIVATE_KEY ? { accounts: [GOERLI_PRIVATE_KEY] } : {}),
+      // ...(GOERLI_PRIVATE_KEY ? { accounts: [GOERLI_PRIVATE_KEY] } : {}),
     },
-    // mainnet: {
-    //   url: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_MAINNET_API_KEY}`,
+    sepolia: {
+      url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_SEPOLIA_API_KEY}`,
+      chainId: 11155111,
+      // Only add account if the PK is provided
+      // ...(SEPOLIA_PRIVATE_KEY ? { accounts: [SEPOLIA_PRIVATE_KEY] } : {}),
+    },
+    mainnet: {
+      url: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_MAINNET_API_KEY}`,
+      chainId: 1,
     // Only add account if the PK is provided
     // ...(MAINNET_PRIVATE_KEY ? { accounts: [MAINNET_PRIVATE_KEY] } : {}),
-    // },
+    },
     hardhat: {
       chainId: 1337, // We set 1337 to make interacting with MetaMask simpler
     },
