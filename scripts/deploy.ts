@@ -1,10 +1,16 @@
 import { ethers, platform } from 'hardhat';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const {
+  OWNER_ADDRESS,
+} = process.env;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const deploy = async () => {
   const USDM = await ethers.getContractFactory('USDM');
-  const [owner] = await ethers.getSigners();
-  const contract = await platform.deployProxy(USDM, ['Mountain Protocol USD', 'USDM', owner.address], {
+  const contract = await platform.deployProxy(USDM, ['Mountain Protocol USD', 'USDM', OWNER_ADDRESS], {
     initializer: 'initialize',
     kind: 'uups',
   });
