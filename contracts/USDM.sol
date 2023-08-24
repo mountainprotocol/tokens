@@ -88,7 +88,12 @@ contract USDM is
      * @param symbol_ The symbol of the token.
      * @param initialSupply The initial amount of tokens for the contract creator.
      */
-    function initialize(string memory name_, string memory symbol_, uint256 initialSupply) external initializer {
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        uint256 initialSupply,
+        address admin
+    ) external initializer {
         _name = name_;
         _symbol = symbol_;
         _setRewardMultiplier(_BASE);
@@ -98,7 +103,7 @@ contract USDM is
         __UUPSUpgradeable_init();
         __EIP712_init(name_, "1");
 
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _mint(_msgSender(), initialSupply);
     }
 

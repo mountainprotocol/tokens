@@ -31,7 +31,7 @@ describe('USDM', () => {
     const [owner, acc1, acc2] = await ethers.getSigners();
 
     const USDM = await ethers.getContractFactory('USDM');
-    const contract = await upgrades.deployProxy(USDM, [name, symbol, totalShares], { initializer: 'initialize' });
+    const contract = await upgrades.deployProxy(USDM, [name, symbol, totalShares, owner.address], { initializer: 'initialize' });
 
     return { contract, owner, acc1, acc2 };
   };
@@ -55,7 +55,7 @@ describe('USDM', () => {
       expect(await contract.decimals()).to.be.equal(18);
     });
 
-    it('grants admin role to deployer', async () => {
+    it('grants admin role to the address passed', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       expect(await contract.hasRole(await contract.DEFAULT_ADMIN_ROLE(), owner.address)).to.equal(true);
@@ -93,9 +93,9 @@ describe('USDM', () => {
     });
 
     it('fails if initialize is called again after initialization', async () => {
-      const { contract } = await loadFixture(deployUSDMFixture);
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.initialize(name, symbol, totalShares)).to.be.revertedWith(
+      await expect(contract.initialize(name, symbol, totalShares, owner.address)).to.be.revertedWith(
         'Initializable: contract is already initialized',
       );
     });
