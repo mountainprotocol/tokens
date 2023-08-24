@@ -90,14 +90,9 @@ contract USDM is
      * @notice Initializes the contract.
      * @param name_ The name of the token.
      * @param symbol_ The symbol of the token.
-     * @param initialSupply The initial amount of tokens for the contract creator.
+     * @param owner Owner address.
      */
-    function initialize(
-        string memory name_,
-        string memory symbol_,
-        uint256 initialSupply,
-        address admin
-    ) external initializer {
+    function initialize(string memory name_, string memory symbol_, address owner) external initializer {
         _name = name_;
         _symbol = symbol_;
         _setRewardMultiplier(_BASE);
@@ -107,8 +102,7 @@ contract USDM is
         __UUPSUpgradeable_init();
         __EIP712_init(name_, "1");
 
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _mint(_msgSender(), initialSupply);
+        _grantRole(DEFAULT_ADMIN_ROLE, owner);
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
