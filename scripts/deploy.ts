@@ -15,7 +15,7 @@ const deploy = async () => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const upgrade = async () => {
-  const PROXY_ADDRESS = '0x3175b3c65202099bc14d3056d0b894b42bbb5087';
+  const PROXY_ADDRESS = '';
   const newUSDM = await ethers.getContractFactory('USDM');
   console.log('Upgrading contract... %s', PROXY_ADDRESS);
   const proposal = await platform.proposeUpgrade(PROXY_ADDRESS, newUSDM);
