@@ -10,6 +10,10 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
 
+/**
+ * @title Mountain Protocol USD Contract
+ * @custom:security-contact security@mountainprotocol.com
+ */
 contract USDM is
     IERC20MetadataUpgradeable,
     AccessControlUpgradeable,
