@@ -3,9 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const {
-  OWNER_ADDRESS,
-} = process.env;
+const { OWNER_ADDRESS } = process.env;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const deploy = async () => {
