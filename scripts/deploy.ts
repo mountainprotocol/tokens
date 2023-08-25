@@ -11,6 +11,7 @@ const deploy = async () => {
   const contract = await platform.deployProxy(USDM, ['Mountain Protocol USD', 'USDM', OWNER_ADDRESS], {
     initializer: 'initialize',
     kind: 'uups',
+    salt: '1337',
   });
   await contract.deployed();
 
