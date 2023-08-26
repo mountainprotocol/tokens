@@ -31,7 +31,13 @@ describe('USDM', () => {
     const [owner, acc1, acc2] = await ethers.getSigners();
 
     const USDM = await ethers.getContractFactory('USDM');
-    const contract = await upgrades.deployProxy(USDM, [name, symbol, totalShares], { initializer: 'initialize' });
+    const contract = await upgrades.deployProxy(USDM, [name, symbol, owner.address], {
+      initializer: 'initialize',
+    });
+
+    await contract.grantRole(roles.MINTER, owner.address);
+    await contract.mint(owner.address, totalShares);
+    await contract.revokeRole(roles.MINTER, owner.address);
 
     return { contract, owner, acc1, acc2 };
   };
@@ -55,7 +61,7 @@ describe('USDM', () => {
       expect(await contract.decimals()).to.be.equal(18);
     });
 
-    it('grants admin role to deployer', async () => {
+    it('grants admin role to the address passed to the initializer', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       expect(await contract.hasRole(await contract.DEFAULT_ADMIN_ROLE(), owner.address)).to.equal(true);
@@ -74,28 +80,28 @@ describe('USDM', () => {
       expect(await contract.totalSupply()).to.equal(totalShares);
     });
 
-    it('assigns the initial total shares to deployer', async () => {
+    it('assigns the total shares to the owner', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       expect(await contract.sharesOf(owner.address)).to.equal(totalShares);
     });
 
-    it('assigns the initial balance to the deployer', async () => {
+    it('assigns the balance to the the owner', async () => {
       const { contract, owner } = await loadFixture(deployUSDMFixture);
 
       expect(await contract.balanceOf(owner.address)).to.equal(totalShares);
     });
 
-    it('sets initial reward multiplier to 100%', async () => {
+    it('sets reward multiplier to 100%', async () => {
       const { contract } = await loadFixture(deployUSDMFixture);
 
       expect(await contract.rewardMultiplier()).to.equal(parseUnits('1')); // 1 equals to 100%
     });
 
     it('fails if initialize is called again after initialization', async () => {
-      const { contract } = await loadFixture(deployUSDMFixture);
+      const { contract, owner } = await loadFixture(deployUSDMFixture);
 
-      await expect(contract.initialize(name, symbol, totalShares)).to.be.revertedWith(
+      await expect(contract.initialize(name, symbol, owner.address)).to.be.revertedWith(
         'Initializable: contract is already initialized',
       );
     });

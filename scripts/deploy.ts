@@ -1,30 +1,31 @@
-import { ethers, upgrades } from 'hardhat';
+import { ethers, platform } from 'hardhat';
+import dotenv from 'dotenv';
 
+dotenv.config();
+
+const { OWNER_ADDRESS } = process.env;
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const deploy = async () => {
-  const [deployer] = await ethers.getSigners();
-
-  console.log('Deployer: %s', await deployer.getAddress());
-
-  console.log('Account balance: %s', ethers.utils.formatEther(await deployer.getBalance()));
-
   const USDM = await ethers.getContractFactory('USDM');
-  const usdm = await upgrades.deployProxy(USDM, ['Mountain Protocol USD', 'USDM', ethers.utils.parseUnits('1')], {
+  const contract = await platform.deployProxy(USDM, ['Mountain Protocol USD', 'USDM', OWNER_ADDRESS], {
     initializer: 'initialize',
     kind: 'uups',
+    salt: '1337',
   });
-  await usdm.deployed();
+  await contract.deployed();
 
-  console.log('Contract address: %s', usdm.address);
+  console.log('Contract address: %s', contract.address);
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const upgrade = async () => {
-  const PROXY_ADDRESS = '0xe31Cf614fC1C5d3781d9E09bdb2e04134CDebb89';
-  const newContract = await ethers.getContractFactory('USDM');
+  const PROXY_ADDRESS = '';
+  const newUSDM = await ethers.getContractFactory('USDM');
   console.log('Upgrading contract... %s', PROXY_ADDRESS);
-  // It's no necessary to specify proxy's kind since it's inferred from the proxy address
-  await upgrades.upgradeProxy(PROXY_ADDRESS, newContract);
-  console.log('Contract upgraded');
+  const proposal = await platform.proposeUpgrade(PROXY_ADDRESS, newUSDM);
+
+  console.log(`Upgrade proposal URL: ${proposal.url}`);
 };
 
 // We recommend this pattern to be able to use async/await everywhere
