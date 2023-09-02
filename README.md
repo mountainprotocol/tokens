@@ -157,7 +157,9 @@ Please make sure to run the linter and update tests as appropriate.
 
 ## Security
 
-The security policy is detailed in [SECURITY.md](https://github.com/mountainprotocol/tokens/blob/main/SECURITY.md), and specifies how you can report security vulnerabilities and which versions will receive security updates. We run a bug bounty program on Immunefi to reward the responsible disclosure of vulnerabilities.
+The (Mountain Protocol Security Center)[https://security.mountainprotocol.com] contains more details about the secure development process.
+
+The security policy is detailed in [SECURITY.md](https://github.com/mountainprotocol/tokens/blob/main/SECURITY.md), and specifies how you can report security vulnerabilities and which versions will receive security updates. We run a [bug bounty program on Immunefi](https://immunefi.com/bounty/mountainprotocol/) to reward the responsible disclosure of vulnerabilities.
 
 ## Audits
 
