@@ -2,6 +2,30 @@
 
 This smart contract implements a custom rebasing ERC-20 token with additional features like pausing, block/unblock, access control, and upgradability. The contract aims to reflect the T-Bills APY into the token value through a reward multiplier mechanism. Users receive a proportional number of shares when they deposit tokens, and the number of tokens they can withdraw is calculated based on the current reward multiplier. The addRewardMultiplier function is called once a day to adjust the reward multiplier, ensuring accurate reflection of the yield from 3 months maturity T-Bills.
 
+## Security
+
+The [Mountain Protocol Security Center](https://security.mountainprotocol.com) contains more details about the secure development process.
+
+The security policy is detailed in [SECURITY.md](https://github.com/mountainprotocol/tokens/blob/main/SECURITY.md), and specifies how you can report security vulnerabilities and which versions will receive security updates. We run a [bug bounty program on Immunefi](https://immunefi.com/bounty/mountainprotocol/) to reward the responsible disclosure of vulnerabilities.
+
+## Audits
+
+Audits can be found at https://github.com/mountainprotocol/audits.
+
+## License
+
+Mountain Protocol Contracts are released under the [MIT License](https://github.com/mountainprotocol/tokens/blob/main/LICENSE).
+
+## Legal
+
+The use of this Project is governed by the terms found at https://docs.mountainprotocol.com/legal/terms-and-conditions.
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to run the linter and update tests as appropriate.
+
 ## Dev
 
 This Project uses Hardhat. It includes a contract, its tests, and a script that deploys the contract.
@@ -148,27 +172,3 @@ npx hardhat help
 - `ORACLE_ROLE`: Grants the ability to update the reward multiplier.
 - `UPGRADE_ROLE`: Grants the ability to upgrade the contract.
 - `PAUSE_ROLE`: Grants the ability to pause/unpause the contract.
-
-## Contributing
-
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
-Please make sure to run the linter and update tests as appropriate.
-
-## Security
-
-The [Mountain Protocol Security Center](https://security.mountainprotocol.com) contains more details about the secure development process.
-
-The security policy is detailed in [SECURITY.md](https://github.com/mountainprotocol/tokens/blob/main/SECURITY.md), and specifies how you can report security vulnerabilities and which versions will receive security updates. We run a [bug bounty program on Immunefi](https://immunefi.com/bounty/mountainprotocol/) to reward the responsible disclosure of vulnerabilities.
-
-## Audits
-
-Audits can be found at https://github.com/mountainprotocol/audits.
-
-## License
-
-Mountain Protocol Contracts are released under the [MIT License](https://github.com/mountainprotocol/tokens/blob/main/LICENSE).
-
-## Legal
-
-The use of this Project is governed by the terms found at https://docs.mountainprotocol.com/legal/terms-and-conditions.
