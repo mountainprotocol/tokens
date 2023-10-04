@@ -119,9 +119,6 @@ contract wUSDM is
         if (paused()) {
             revert wUSDMPausedTransfers();
         }
-
-        // TODO: do we need to call super?
-        super._beforeTokenTransfer(from, to, amount);
     }
 
     /**
