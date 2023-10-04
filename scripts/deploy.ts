@@ -1,4 +1,4 @@
-import { ethers, platform } from 'hardhat';
+import { ethers, platform, upgrades } from 'hardhat';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,10 +10,16 @@ const contractName = 'wUSDM';
 const initializerArgs = [USDM_ADDRESS, OWNER_ADDRESS];
 const salt = '1337';
 
+// Deploy with terminal
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const deploy = async () => {
+  const [deployer] = await ethers.getSigners();
+
+  console.log('Deployer: %s', await deployer.getAddress());
+  console.log('Account balance: %s', ethers.utils.formatEther(await deployer.getBalance()));
+
   const contractFactory = await ethers.getContractFactory(contractName);
-  const contract = await platform.deployProxy(contractFactory, initializerArgs, {
+  const contract = await upgrades.deployProxy(contractFactory, initializerArgs, {
     initializer: 'initialize',
     kind: 'uups',
     salt,
@@ -24,8 +30,36 @@ const deploy = async () => {
   console.log('Contract address: %s', contract.address);
 };
 
+// Upgrade with terminal
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const upgrade = async () => {
+  console.log('Upgrading contract... %s', PROXY_ADDRESS);
+
+  const newContract = await ethers.getContractFactory(contractName);
+  await upgrades.upgradeProxy(PROXY_ADDRESS, newContract);
+
+  console.log('Contract upgraded');
+
+};
+
+// OpenZeppelin Platform Deploy
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const deployWithOZPlatform = async () => {
+  const contractFactory = await ethers.getContractFactory(contractName);
+  const contract = await platform.deployProxy(contractFactory, initializerArgs, {
+    initializer: 'initialize',
+    kind: 'uups',
+    salt,
+  });
+
+  await contract.deployed();
+
+  console.log('Contract address: %s', contract.address);
+}
+
+// OpenZeppelin Platform Upgrade
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const upgradeWithOZPlatform = async () => {
   const newContract = await ethers.getContractFactory(contractName);
   const proposal = await platform.proposeUpgrade(PROXY_ADDRESS, newContract);
 
