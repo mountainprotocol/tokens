@@ -60,6 +60,7 @@ contract wUSDM is
     /**
      * @notice Initializes the ERC-4626 USDM Wrapper
      * @param _USDM address of the USDM token to wrap
+     * @param owner Owner address.
      */
     function initialize(IUSDM _USDM, address owner) external initializer {
         USDM = _USDM;
