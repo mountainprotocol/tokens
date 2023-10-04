@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import {ECDSAUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
-import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
-import {ECDSAUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
+// USDM Interface
 interface IUSDM is IERC20MetadataUpgradeable {
     function isBlocked(address) external view returns (bool);
 
@@ -22,26 +23,26 @@ interface IUSDM is IERC20MetadataUpgradeable {
  * @custom:security-contact security@mountainprotocol.com
  */
 contract wUSDM is
-    PausableUpgradeable,
-    AccessControlUpgradeable,
-    UUPSUpgradeable,
     ERC4626Upgradeable,
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    UUPSUpgradeable,
     IERC20PermitUpgradeable,
     EIP712Upgradeable
 {
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
-    // for permit()
+    IUSDM public USDM;
+
+    // Mapping of nonces per address
     mapping(address => CountersUpgradeable.Counter) private _nonces;
     // solhint-disable-next-line var-name-mixedcase
     bytes32 private constant _PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
-    // for our access control
+    // Access control roles
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
     bytes32 public constant UPGRADE_ROLE = keccak256("UPGRADE_ROLE");
-
-    IUSDM public USDM;
 
     // ERC2612 Errors
     error ERC2612ExpiredDeadline(uint256 deadline, uint256 blockTimestamp);
@@ -53,15 +54,14 @@ contract wUSDM is
     }
 
     /**
-     * @notice Initializes the ERC-4626 USDM wrapper
+     * @notice Initializes the ERC-4626 USDM Wrapper
      * @param _USDM address of the USDM token to wrap
      */
     function initialize(IUSDM _USDM, address owner) external initializer {
         USDM = _USDM;
-        // TODO: should we move to initialize in case we want to change name and symbol?
+
         __ERC20_init("Wrapped Mountain Protocol USD", "wUSDM");
         __ERC4626_init(_USDM);
-
         __AccessControl_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
@@ -77,14 +77,31 @@ contract wUSDM is
         return USDM.paused() || super.paused();
     }
 
+    /**
+     * @notice Pauses token transfers and other operations.
+     * @dev This function can only be called by an account with PAUSE_ROLE.
+     * @dev Inherits the _pause function from @openzeppelin/PausableUpgradeable contract.
+     */
     function pause() external onlyRole(PAUSE_ROLE) {
-        _pause();
+        super._pause();
     }
 
+    /**
+     * @notice Unpauses token transfers and other operations.
+     * @dev This function can only be called by an account with PAUSE_ROLE.
+     * @dev Inherits the _unpause function from @openzeppelin/PausableUpgradeable contract.
+     */
     function unpause() external onlyRole(PAUSE_ROLE) {
-        _unpause();
+        super._unpause();
     }
 
+    /**
+     * @dev Private function of a hook that is called before any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Note: If either `from` or `to` are blocked, or the contract is paused, it reverts the transaction.
+     */
+    // TODO: private view?
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         require(!USDM.isBlocked(from));
         require(!paused());
@@ -92,7 +109,10 @@ contract wUSDM is
         super._beforeTokenTransfer(from, to, amount);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADE_ROLE) {}
+    /**
+     * @dev Ensures that only accounts with UPGRADE_ROLE can upgrade the contract.
+     */
+    function _authorizeUpgrade(address) internal override onlyRole(UPGRADE_ROLE) {}
 
     /**
      * @dev See {IERC20PermitUpgradeable-permit}.
@@ -124,14 +144,13 @@ contract wUSDM is
     /**
      * @dev See {IERC20PermitUpgradeable-nonces}.
      */
-    function nonces(address owner) public view returns (uint256) {
+    function nonces(address owner) external view returns (uint256) {
         return _nonces[owner].current();
     }
 
     /**
      * @dev See {IERC20PermitUpgradeable-DOMAIN_SEPARATOR}.
      */
-    // solhint-disable-next-line func-name-mixedcase
     function DOMAIN_SEPARATOR() external view returns (bytes32) {
         return _domainSeparatorV4();
     }
@@ -141,9 +160,11 @@ contract wUSDM is
      *
      * _Available since v4.1._
      */
+    // TODO: private instead of internal
     function _useNonce(address owner) internal returns (uint256 current) {
         CountersUpgradeable.Counter storage nonce = _nonces[owner];
         current = nonce.current();
+
         nonce.increment();
     }
 }
