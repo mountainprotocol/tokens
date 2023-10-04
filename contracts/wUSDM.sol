@@ -120,6 +120,7 @@ contract wUSDM is
             revert wUSDMPausedTransfers();
         }
 
+        // TODO: do we need to call super?
         super._beforeTokenTransfer(from, to, amount);
     }
 
