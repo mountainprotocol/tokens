@@ -12,16 +12,16 @@ const salt = '1337';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const deploy = async () => {
-  const USDM = await ethers.getContractFactory(contractName);
-  const contract = await platform.deployProxy(USDM, initializerArgs, {
+  const contract = await ethers.getContractFactory(contractName);
+  const contractFactory = await platform.deployProxy(contract, initializerArgs, {
     initializer: 'initialize',
     kind: 'uups',
     salt,
   });
 
-  await contract.deployed();
+  await contractFactory.deployed();
 
-  console.log('Contract address: %s', contract.address);
+  console.log('Contract address: %s', contractFactory.address);
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
