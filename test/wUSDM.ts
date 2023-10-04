@@ -21,7 +21,7 @@ const roles = {
 describe('wUSDM', () => {
   const name = 'Wrapped Mountain Protocol USD';
   const symbol = 'wUSDM';
-  const totalUSDMShares = parseUnits('10');
+  const totalUSDMShares = parseUnits('1337');
 
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
@@ -186,8 +186,8 @@ describe('wUSDM', () => {
 
     it('can accrue value without rebasing', async () => {
       const { wUSDMContract, USDMContract, owner } = await loadFixture(deployFixture);
-
       const initialBalance = await USDMContract.balanceOf(owner.address);
+
       await USDMContract.connect(owner).approve(wUSDMContract.address, MaxUint256);
       await wUSDMContract.connect(owner).deposit(initialBalance, owner.address);
 
@@ -196,6 +196,7 @@ describe('wUSDM', () => {
 
       const rewardMultiplier = parseUnits('1.0001');
       const expectedIncrement = initialBalance.mul(rewardMultiplier).div(parseUnits('1'));
+
       await USDMContract.connect(owner).setRewardMultiplier(rewardMultiplier);
 
       expect(await wUSDMContract.balanceOf(owner.address)).to.be.equal(initialBalance);
@@ -205,6 +206,7 @@ describe('wUSDM', () => {
       await wUSDMContract
         .connect(owner)
         .redeem(await wUSDMContract.balanceOf(owner.address), owner.address, owner.address);
+
       expectEqualWithError(await USDMContract.balanceOf(owner.address), expectedIncrement);
     });
   });
@@ -222,6 +224,7 @@ describe('wUSDM', () => {
       expect(await wUSDMContract.maxWithdraw(acc1.address)).to.be.equal(parseUnits('1'));
 
       await wUSDMContract.connect(acc1).withdraw(parseUnits('1'), acc1.address, acc1.address);
+
       expect(await USDMContract.balanceOf(acc1.address)).to.be.equal(parseUnits('1'));
     });
 
@@ -230,14 +233,15 @@ describe('wUSDM', () => {
 
       await USDMContract.connect(owner).approve(wUSDMContract.address, MaxUint256);
       await wUSDMContract.connect(owner).deposit(parseUnits('2'), owner.address);
-
       await USDMContract.connect(owner).pause();
+
       await expect(wUSDMContract.connect(owner).transfer(acc1.address, parseUnits('2'))).to.be.revertedWithCustomError(
         wUSDMContract,
         'wUSDMPausedTransfers',
       );
 
       await USDMContract.connect(owner).unpause();
+
       await expect(wUSDMContract.connect(owner).transfer(acc1.address, parseUnits('2'))).not.to.be.reverted;
     });
 
@@ -247,14 +251,15 @@ describe('wUSDM', () => {
       await USDMContract.connect(owner).approve(wUSDMContract.address, MaxUint256);
       await wUSDMContract.connect(owner).deposit(parseUnits('2'), owner.address);
       await wUSDMContract.connect(owner).transfer(acc1.address, parseUnits('2'));
-
       await USDMContract.connect(owner).blockAccounts([acc1.address]);
+
       await expect(wUSDMContract.connect(acc1).transfer(acc2.address, parseUnits('2'))).to.be.revertedWithCustomError(
         wUSDMContract,
         'wUSDMBlockedSender',
       );
 
       await USDMContract.connect(owner).unblockAccounts([acc1.address]);
+
       await expect(wUSDMContract.connect(acc1).transfer(acc1.address, parseUnits('2'))).not.to.be.reverted;
     });
   });
@@ -317,6 +322,7 @@ describe('wUSDM', () => {
 
     it('initializes nonce at 0', async () => {
       const { wUSDMContract, acc1 } = await loadFixture(deployFixture);
+
       expect(await wUSDMContract.nonces(acc1.address)).to.equal(0);
     });
 
@@ -336,6 +342,7 @@ describe('wUSDM', () => {
           ],
         ),
       );
+
       expect(await wUSDMContract.DOMAIN_SEPARATOR()).to.equal(expected);
     });
 
