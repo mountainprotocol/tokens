@@ -18,7 +18,7 @@ const roles = {
   DEFAULT_ADMIN_ROLE: ethers.constants.HashZero,
 };
 
-describe.only('wUSDM', () => {
+describe('wUSDM', () => {
   const name = 'Wrapped Mountain Protocol USD';
   const symbol = 'wUSDM';
   const totalUSDMShares = parseUnits('10');
