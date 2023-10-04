@@ -48,6 +48,10 @@ contract wUSDM is
     error ERC2612ExpiredDeadline(uint256 deadline, uint256 blockTimestamp);
     error ERC2612InvalidSignature(address owner, address spender);
 
+    // wUSDM Errors
+    error wUSDMBlockedSender(address sender);
+    error wUSDMPausedTransfers();
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -103,8 +107,18 @@ contract wUSDM is
      */
     // TODO: private view?
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
-        require(!USDM.isBlocked(from));
-        require(!paused());
+        // Each blocklist check is an SLOAD, which is gas intensive.
+        // We only block sender not receiver, so we don't tax every user
+        if (USDM.isBlocked(from)) {
+            revert wUSDMBlockedSender(from);
+        }
+
+        // Useful for scenarios such as preventing trades until the end of an evaluation
+        // period, or having an emergency switch for freezing all token transfers in the
+        // event of a large bug.
+        if (paused()) {
+            revert wUSDMPausedTransfers();
+        }
 
         super._beforeTokenTransfer(from, to, amount);
     }

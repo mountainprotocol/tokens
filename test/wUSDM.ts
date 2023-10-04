@@ -232,7 +232,10 @@ describe.only('wUSDM', () => {
       await wUSDMContract.connect(owner).deposit(parseUnits('2'), owner.address);
 
       await USDMContract.connect(owner).pause();
-      await expect(wUSDMContract.connect(owner).transfer(acc1.address, parseUnits('2'))).to.be.reverted;
+      await expect(wUSDMContract.connect(owner).transfer(acc1.address, parseUnits('2'))).to.be.revertedWithCustomError(
+        wUSDMContract,
+        'wUSDMPausedTransfers',
+      );
 
       await USDMContract.connect(owner).unpause();
       await expect(wUSDMContract.connect(owner).transfer(acc1.address, parseUnits('2'))).not.to.be.reverted;
@@ -246,7 +249,10 @@ describe.only('wUSDM', () => {
       await wUSDMContract.connect(owner).transfer(acc1.address, parseUnits('2'));
 
       await USDMContract.connect(owner).blockAccounts([acc1.address]);
-      await expect(wUSDMContract.connect(acc1).transfer(acc2.address, parseUnits('2'))).to.be.reverted;
+      await expect(wUSDMContract.connect(acc1).transfer(acc2.address, parseUnits('2'))).to.be.revertedWithCustomError(
+        wUSDMContract,
+        'wUSDMBlockedSender',
+      );
 
       await USDMContract.connect(owner).unblockAccounts([acc1.address]);
       await expect(wUSDMContract.connect(acc1).transfer(acc1.address, parseUnits('2'))).not.to.be.reverted;
