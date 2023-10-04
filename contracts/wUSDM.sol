@@ -172,8 +172,7 @@ contract wUSDM is
      *
      * _Available since v4.1._
      */
-    // TODO: private instead of internal
-    function _useNonce(address owner) internal returns (uint256 current) {
+    function _useNonce(address owner) private returns (uint256 current) {
         CountersUpgradeable.Counter storage nonce = _nonces[owner];
         current = nonce.current();
 
