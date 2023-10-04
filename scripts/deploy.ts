@@ -39,7 +39,6 @@ const upgrade = async () => {
   await upgrades.upgradeProxy(PROXY_ADDRESS, newContract);
 
   console.log('Contract upgraded');
-
 };
 
 // OpenZeppelin Platform Deploy
@@ -55,7 +54,7 @@ const deployWithOZPlatform = async () => {
   await contract.deployed();
 
   console.log('Contract address: %s', contract.address);
-}
+};
 
 // OpenZeppelin Platform Upgrade
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
