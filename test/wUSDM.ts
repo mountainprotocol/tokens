@@ -262,6 +262,21 @@ describe('wUSDM', () => {
 
       await expect(wUSDMContract.connect(acc1).transfer(acc1.address, parseUnits('2'))).not.to.be.reverted;
     });
+
+    it('transfers the proper amount with a non default multiplier', async () => {
+      const { wUSDMContract, USDMContract, owner, acc1 } = await loadFixture(deployFixture);
+      const amount = '1999999692838904485'; // 1.999999692838904485
+
+      await USDMContract.connect(owner).setRewardMultiplier('1002948000000000000'); // 1.002948
+      expect(await wUSDMContract.balanceOf(acc1.address)).to.equal(0);
+
+      await USDMContract.connect(owner).approve(wUSDMContract.address, MaxUint256);
+      await wUSDMContract.connect(owner).deposit(parseUnits('100'), owner.address);
+
+      await wUSDMContract.connect(owner).transfer(acc1.address, amount);
+
+      expect(await wUSDMContract.balanceOf(acc1.address)).to.equal('1999999692838904485');
+    });
   });
 
   describe('Permit', () => {
