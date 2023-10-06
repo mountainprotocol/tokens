@@ -8,7 +8,8 @@ const { OWNER_ADDRESS, USDM_ADDRESS, PROXY_ADDRESS } = process.env;
 const contractName = 'wUSDM';
 // const initializeArgs = ['Mountain Protocol USD', 'USDM', OWNER_ADDRESS];
 const initializerArgs = [USDM_ADDRESS, OWNER_ADDRESS];
-const salt = '1337';
+// const salt = '1337';
+const salt = '1337w';
 
 // Deploy with terminal
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -23,6 +24,7 @@ const deploy = async () => {
     initializer: 'initialize',
     kind: 'uups',
     salt,
+    verifySourceCode: true,
   });
 
   await contract.deployed();
