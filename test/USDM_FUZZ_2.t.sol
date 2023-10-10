@@ -6,25 +6,25 @@ import "../contracts/USDM_2.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract USDMTest is Test {
-
     USDM_2 public usdm;
     string public path = "output.txt";
 
-
     function setUp() public {
         address usdmImpl = address(new USDM_2());
-        address proxy = address(new ERC1967Proxy(
-            usdmImpl, 
-            abi.encodeWithSelector(
-                bytes4(keccak256("initialize(string,string,address)")), 
-                "Mountain Protocol USD", 
-                "USDM", 
-                address(this)
+        address proxy = address(
+            new ERC1967Proxy(
+                usdmImpl,
+                abi.encodeWithSelector(
+                    bytes4(keccak256("initialize(string,string,address)")),
+                    "Mountain Protocol USD",
+                    "USDM",
+                    address(this)
+                )
             )
-        ));
+        );
         usdm = USDM_2(proxy);
         usdm.grantRole(usdm.MINTER_ROLE(), address(this));
-        usdm.mint(address(this), 1337*1e18);
+        usdm.mint(address(this), 1337 * 1e18);
     }
 
     function testTransferBalance(uint256 amount, uint64 rewardMultiplierOffset) external {
