@@ -11,10 +11,18 @@ import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC2
 import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
 
-// USDM Interface
+/**
+ * @dev USDM Interface.
+ */
 interface IUSDM is IERC20MetadataUpgradeable {
+    /**
+     * @dev Checks if the specified address is blocked.
+     */
     function isBlocked(address) external view returns (bool);
 
+    /**
+     * @dev Returns true if the contract is paused, and false otherwise.
+     */
     function paused() external view returns (bool);
 }
 
@@ -58,9 +66,9 @@ contract wUSDM is
     }
 
     /**
-     * @notice Initializes the ERC-4626 USDM Wrapper
-     * @param _USDM address of the USDM token to wrap
-     * @param owner Owner address.
+     * @notice Initializes the ERC-4626 USDM Wrapper.
+     * @param _USDM The address of the USDM token to wrap.
+     * @param owner The owner address.
      */
     function initialize(IUSDM _USDM, address owner) external initializer {
         USDM = _USDM;
@@ -76,7 +84,8 @@ contract wUSDM is
     }
 
     /**
-     * @notice We override paused to use the underlying paused state as well
+     * @notice We override paused to use the underlying paused state as well.
+     * @return Returns true if USDM or wUSDM is paused, and false otherwise.
      */
     function paused() public view override returns (bool) {
         return USDM.paused() || super.paused();
@@ -103,6 +112,10 @@ contract wUSDM is
     /**
      * @dev Private function of a hook that is called before any transfer of tokens. This includes
      * minting and burning.
+     *
+     * @param from The address from which tokens are being transferred.
+     * @param to The address to which tokens are being transferred.
+     * @param amount The amount of tokens being transferred.
      *
      * Note: If either `from` or `to` are blocked, or the contract is paused, it reverts the transaction.
      */
@@ -169,6 +182,7 @@ contract wUSDM is
 
     /**
      * @dev "Consume a nonce": return the current value and increment.
+     * @param owner The owner address.
      *
      * _Available since v4.1._
      */
