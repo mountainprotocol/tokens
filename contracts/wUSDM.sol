@@ -106,7 +106,7 @@ contract wUSDM is
      *
      * Note: If either `from` or `to` are blocked, or the contract is paused, it reverts the transaction.
      */
-    function _beforeTokenTransfer(address from, address /* to */, uint256 /* amount */) internal view override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         // Each blocklist check is an SLOAD, which is gas intensive.
         // We only block sender not receiver, so we don't tax every user
         if (USDM.isBlocked(from)) {
@@ -119,6 +119,8 @@ contract wUSDM is
         if (paused()) {
             revert wUSDMPausedTransfers();
         }
+
+        super._beforeTokenTransfer(from, to, amount);
     }
 
     /**
