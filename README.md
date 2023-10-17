@@ -106,11 +106,11 @@ npx hardhat help
 - EIP-2612 permit support
 - OpenZeppelin UUPS upgrade pattern
 
-### Functions
+### USDM
 
 #### Public and External Functions
 
-- `initialize(string memory name_, string memory symbol_, uint256 initialSupply)`: Initializes the contract.
+- `initialize(string memory name_, string memory symbol_, address owner)`: Initializes the contract.
 - `name()`: Returns the name of the token.
 - `symbol()`: Returns the symbol of the token.
 - `decimals()`: Returns the number of decimals the token uses.
@@ -139,7 +139,7 @@ npx hardhat help
 - `nonces(address owner)`: Returns the nonce for the specified address.
 - `permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)`: Implements EIP-2612 permit functionality.
 
-#### Private and internal Functions
+#### Private and Internal Functions
 
 - `_authorizeUpgrade(address newImplementation)`: Internal function to authorize an upgrade.
 - `_mint(address to, uint256 amount)`: Internal function to mint tokens to the specified address.
@@ -159,16 +159,50 @@ npx hardhat help
 - `Transfer(from indexed addr, to uint256, amount uint256)`: Emitted when transferring tokens.
 - `RewardMultiplier(uint256 indexed value)`: Emitted when the reward multiplier has changed.
 - `Approval(address indexed owner, address indexed spender, uint256 value)`: Emitted when the allowance of a spender for an owner is set.
-- `AddressBlocked(address indexed addr)`: Emitted when an address is blocked.
-- `AddressUnBlocked(address indexed addr)`: Emitted when an address is removed from the blocklist.
+- `AccountBlocked(address indexed addr)`: Emitted when an address is blocked.
+- `AccountUnblocked(address indexed addr)`: Emitted when an address is removed from the blocklist.
 - `Paused(address account)`: Emitted when the pause is triggered by account.
 - `Unpaused(address account)`: Emitted when the unpause is triggered by account.
+- `Upgraded(address indexed implementation)`: Emitted when the implementation is upgraded.
 
 #### Roles
 
+- `DEFAULT_ADMIN_ROLE`: Grants the ability to grant roles.
 - `MINTER_ROLE`: Grants the ability to mint tokens.
 - `BURNER_ROLE`: Grants the ability to burn tokens.
 - `BLOCKLIST_ROLE`: Grants the ability to manage the blocklist.
 - `ORACLE_ROLE`: Grants the ability to update the reward multiplier.
+- `UPGRADE_ROLE`: Grants the ability to upgrade the contract.
+- `PAUSE_ROLE`: Grants the ability to pause/unpause the contract.
+
+### wUSDM
+
+#### Public and External Functions
+
+- `initialize(IUSDM _USDM, address owner)`: Initializes the contract.
+- `pause()`: Pauses the contract, halting token transfers.
+- `unpause()`: Unpauses the contract, allowing token transfers.
+- `paused()`: Returns true if USDM or wUSDM is paused, and false otherwise.
+- `DOMAIN_SEPARATOR()`: Returns the EIP-712 domain separator.
+- `nonces(address owner)`: Returns the nonce for the specified address.
+- `permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)`: Implements EIP-2612 permit functionality.
+
+#### Private and Internal Functions
+
+- `_beforeTokenTransfer(address from, address to, uint256 amount)`: Hook that is called before any transfer of tokens.
+- `_authorizeUpgrade(address newImplementation)`: Internal function to authorize an upgrade.
+- `_useNonce(address owner)`: Increments and returns the current nonce for a given address.
+
+#### Events
+
+- `Transfer(from indexed addr, to uint256, amount uint256)`: Emitted when transferring tokens.
+- `Approval(address indexed owner, address indexed spender, uint256 value)`: Emitted when the allowance of a spender for an owner is set.
+- `Paused(address account)`: Emitted when the pause is triggered by account.
+- `Unpaused(address account)`: Emitted when the unpause is triggered by account.
+- `Upgraded(address indexed implementation)`: Emitted when the implementation is upgraded.
+
+#### Roles
+
+- `DEFAULT_ADMIN_ROLE`: Grants the ability to grant roles.
 - `UPGRADE_ROLE`: Grants the ability to upgrade the contract.
 - `PAUSE_ROLE`: Grants the ability to pause/unpause the contract.
