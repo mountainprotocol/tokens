@@ -35,7 +35,7 @@ contract wUSDM is
     IUSDM public USDM;
 
     // Mapping of nonces per address
-    mapping(address => CountersUpgradeable.Counter) private _nonces;
+    mapping(address account => CountersUpgradeable.Counter counter) private _nonces;
     // solhint-disable-next-line var-name-mixedcase
     bytes32 private constant _PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
