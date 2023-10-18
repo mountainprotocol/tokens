@@ -22,14 +22,6 @@ The security policy is detailed in [SECURITY.md](https://github.com/mountainprot
 
 Audits can be found at https://github.com/mountainprotocol/audits.
 
-## License
-
-Mountain Protocol Contracts are released under the [MIT License](https://github.com/mountainprotocol/tokens/blob/main/LICENSE).
-
-## Legal
-
-The use of this Project is governed by the terms found at https://docs.mountainprotocol.com/legal/terms-and-conditions.
-
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
@@ -216,3 +208,11 @@ npx hardhat help
 - `DEFAULT_ADMIN_ROLE`: Grants the ability to grant roles.
 - `UPGRADE_ROLE`: Grants the ability to upgrade the contract.
 - `PAUSE_ROLE`: Grants the ability to pause/unpause the contract.
+
+## License
+
+Mountain Protocol Contracts are released under the [MIT License](https://github.com/mountainprotocol/tokens/blob/main/LICENSE).
+
+## Legal
+
+The use of this Project is governed by the terms found at https://docs.mountainprotocol.com/legal/terms-and-conditions.
