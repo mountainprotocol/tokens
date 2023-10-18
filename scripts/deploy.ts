@@ -1,30 +1,70 @@
-import { ethers, platform } from 'hardhat';
+import { ethers, platform, upgrades } from 'hardhat';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const { OWNER_ADDRESS } = process.env;
+const { OWNER_ADDRESS, USDM_ADDRESS, PROXY_ADDRESS } = process.env;
+// const contractName = 'USDM';
+const contractName = 'wUSDM';
+// const initializeArgs = ['Mountain Protocol USD', 'USDM', OWNER_ADDRESS];
+const initializerArgs = [USDM_ADDRESS, OWNER_ADDRESS];
+// const salt = '1337';
+const salt = '1337w';
 
+// Deploy with terminal
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const deploy = async () => {
-  const USDM = await ethers.getContractFactory('USDM');
-  const contract = await platform.deployProxy(USDM, ['Mountain Protocol USD', 'USDM', OWNER_ADDRESS], {
+  const [deployer] = await ethers.getSigners();
+
+  console.log('Deployer: %s', await deployer.getAddress());
+  console.log('Account balance: %s', ethers.utils.formatEther(await deployer.getBalance()));
+
+  const contractFactory = await ethers.getContractFactory(contractName);
+  const contract = await upgrades.deployProxy(contractFactory, initializerArgs, {
     initializer: 'initialize',
     kind: 'uups',
-    salt: '1337',
+    salt,
+    verifySourceCode: true,
   });
+
   await contract.deployed();
 
   console.log('Contract address: %s', contract.address);
 };
 
+// Upgrade with terminal
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const upgrade = async () => {
-  const PROXY_ADDRESS = '';
-  const newUSDM = await ethers.getContractFactory('USDM');
   console.log('Upgrading contract... %s', PROXY_ADDRESS);
-  const proposal = await platform.proposeUpgrade(PROXY_ADDRESS, newUSDM);
 
+  const newContract = await ethers.getContractFactory(contractName);
+  await upgrades.upgradeProxy(PROXY_ADDRESS, newContract);
+
+  console.log('Contract upgraded');
+};
+
+// OpenZeppelin Platform Deploy
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const deployWithOZPlatform = async () => {
+  const contractFactory = await ethers.getContractFactory(contractName);
+  const contract = await platform.deployProxy(contractFactory, initializerArgs, {
+    initializer: 'initialize',
+    kind: 'uups',
+    salt,
+  });
+
+  await contract.deployed();
+
+  console.log('Contract address: %s', contract.address);
+};
+
+// OpenZeppelin Platform Upgrade
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const upgradeWithOZPlatform = async () => {
+  const newContract = await ethers.getContractFactory(contractName);
+  const proposal = await platform.proposeUpgrade(PROXY_ADDRESS, newContract);
+
+  console.log('Upgrading contract... %s', PROXY_ADDRESS);
   console.log(`Upgrade proposal URL: ${proposal.url}`);
 };
 
