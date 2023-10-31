@@ -17,6 +17,11 @@ const {
   OZ_PLATFORM_KEY,
   OZ_PLATFORM_SECRET,
   GOERLI_PRIVATE_KEY,
+  ALCHEMY_BASE_API_KEY,
+  ALCHEMY_OPTIMISM_API_KEY,
+  ALCHEMY_ARBITRUM_API_KEY,
+  ALCHEMY_POLYGON_API_KEY,
+  ALCHEMY_POLYGON_ZK_API_KEY,
 } = process.env;
 
 const isTestEnv = NODE_ENV === 'test';
@@ -76,6 +81,26 @@ const config: HardhatUserConfig = {
     },
     hardhat: {
       chainId: 1337, // We set 1337 to make interacting with MetaMask simpler
+    },
+    base: {
+      url: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_BASE_API_KEY}`,
+      chainId: 8453,
+    },
+    optimism: {
+      url: `https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_OPTIMISM_API_KEY}`,
+      chainId: 10,
+    },
+    arbitrum: {
+      url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_API_KEY}`,
+      chainId: 42161,
+    },
+    polygon: {
+      url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_POLYGON_API_KEY}`,
+      chainId: 137,
+    },
+    polygonzk: {
+      url: `https://polygonzkevm-mainnet.g.alchemy.com/v2/${ALCHEMY_POLYGON_ZK_API_KEY}`,
+      chainId: 137,
     },
   },
   gasReporter: gasReport ? gasReporterConfig : {},

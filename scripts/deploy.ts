@@ -62,7 +62,9 @@ const deployWithOZPlatform = async () => {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const upgradeWithOZPlatform = async () => {
   const newContract = await ethers.getContractFactory(contractName);
-  const proposal = await platform.proposeUpgrade(PROXY_ADDRESS, newContract);
+  const proposal = await platform.proposeUpgrade(PROXY_ADDRESS, newContract, {
+    salt,
+  });
 
   console.log('Upgrading contract... %s', PROXY_ADDRESS);
   console.log(`Upgrade proposal URL: ${proposal.url}`);
@@ -70,7 +72,7 @@ const upgradeWithOZPlatform = async () => {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-deploy()
+deployWithOZPlatform()
   .then(() => process.exit(0))
   .catch(error => {
     console.error(error);
