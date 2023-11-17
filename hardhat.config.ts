@@ -22,6 +22,8 @@ const {
   ALCHEMY_ARBITRUM_API_KEY,
   ALCHEMY_POLYGON_API_KEY,
   ALCHEMY_POLYGON_ZK_API_KEY,
+  ALCHEMY_POLYGON_MUMBAI_API_KEY,
+  ALCHEMY_BASE_GOERLI_API_KEY,
 } = process.env;
 
 const isTestEnv = NODE_ENV === 'test';
@@ -54,7 +56,7 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  platform: {
+  defender: {
     apiKey: OZ_PLATFORM_KEY as string,
     apiSecret: OZ_PLATFORM_SECRET as string,
   },
@@ -86,6 +88,10 @@ const config: HardhatUserConfig = {
       url: `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_BASE_API_KEY}`,
       chainId: 8453,
     },
+    baseGoerli: {
+      url: `https://base-goerli.g.alchemy.com/v2/${ALCHEMY_BASE_GOERLI_API_KEY}`,
+      chainId: 84531,
+    },
     optimism: {
       url: `https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_OPTIMISM_API_KEY}`,
       chainId: 10,
@@ -101,6 +107,10 @@ const config: HardhatUserConfig = {
     polygonzk: {
       url: `https://polygonzkevm-mainnet.g.alchemy.com/v2/${ALCHEMY_POLYGON_ZK_API_KEY}`,
       chainId: 137,
+    },
+    polygonMumbai: {
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_POLYGON_MUMBAI_API_KEY}`,
+      chainId: 80001,
     },
   },
   gasReporter: gasReport ? gasReporterConfig : {},
