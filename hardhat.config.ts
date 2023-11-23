@@ -24,6 +24,8 @@ const {
   ALCHEMY_POLYGON_ZK_API_KEY,
   ALCHEMY_POLYGON_MUMBAI_API_KEY,
   ALCHEMY_BASE_GOERLI_API_KEY,
+  ALCHEMY_OPTIMISM_GOERLI_API_KEY,
+  ALCHEMY_ARBITRUM_GOERLI_API_KEY,
 } = process.env;
 
 const isTestEnv = NODE_ENV === 'test';
@@ -111,6 +113,14 @@ const config: HardhatUserConfig = {
     polygonMumbai: {
       url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_POLYGON_MUMBAI_API_KEY}`,
       chainId: 80001,
+    },
+    optimismGoerli: {
+      url: `https://optimism-goerli.infura.io/v3/${ALCHEMY_OPTIMISM_GOERLI_API_KEY}`,
+      chainId: 420,
+    },
+    arbitrumGoerli: {
+      url: `https://arbitrum-goerli.infura.io/v3/${ALCHEMY_ARBITRUM_GOERLI_API_KEY}`,
+      chainId: 421613,
     },
   },
   gasReporter: gasReport ? gasReporterConfig : {},
