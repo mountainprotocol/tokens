@@ -28,6 +28,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.2",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@openzeppelin/defender-relay-client": "^1.52.0",
     "@openzeppelin/defender-sdk": "^1.5.0",
     "@openzeppelin/hardhat-upgrades": "^2.4.0",
     "@openzeppelin/test-helpers": "^0.5.16",
