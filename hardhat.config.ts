@@ -26,6 +26,7 @@ const {
   ALCHEMY_BASE_GOERLI_API_KEY,
   ALCHEMY_OPTIMISM_GOERLI_API_KEY,
   ALCHEMY_ARBITRUM_GOERLI_API_KEY,
+  QUICKNODE_GNOSIS_MAINNET_API_KEY,
 } = process.env;
 
 const isTestEnv = NODE_ENV === 'test';
@@ -121,6 +122,10 @@ const config: HardhatUserConfig = {
     arbitrumGoerli: {
       url: `https://arbitrum-goerli.infura.io/v3/${ALCHEMY_ARBITRUM_GOERLI_API_KEY}`,
       chainId: 421613,
+    },
+    gnosis: {
+      url: `https://lingering-hardworking-waterfall.xdai.quiknode.pro/${QUICKNODE_GNOSIS_MAINNET_API_KEY}/`,
+      chainId: 100,
     },
   },
   gasReporter: gasReport ? gasReporterConfig : {},
